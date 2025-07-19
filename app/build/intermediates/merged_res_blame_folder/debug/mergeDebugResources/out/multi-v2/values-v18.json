@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.example.irislens.app-mergeDebugResources-29:/values-v18/values-v18.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\aleja\\.gradle\\caches\\8.9\\transforms\\9e4a55211b4e807fb6be0521a1581cd5\\transformed\\appcompat-1.6.1\\res\\values-v18\\values-v18.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "48",
+                        "endOffsets": "99"
+                    }
+                }
+            ]
+        }
+    ]
+}

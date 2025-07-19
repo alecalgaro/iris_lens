@@ -1,0 +1,46 @@
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+android {
+    namespace 'com.example.irislens'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.example.irislens"
+        minSdk 23   // min Sdk 28 minima version Android 9, min Sdk 22 minima version Android 5.1.1, minSdk 23 para Android 6
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+
+dependencies {
+    // OpenCV
+    implementation project(':opencv')
+    // Tesseract
+    implementation 'cz.adaptech.tesseract4android:tesseract4android:4.6.0'
+    // commons-text para calcular similitud de palabras
+    implementation 'org.apache.commons:commons-text:1.9'
+
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.activity
+    implementation libs.constraintlayout
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
+}
