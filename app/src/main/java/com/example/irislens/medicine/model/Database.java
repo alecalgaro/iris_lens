@@ -14,6 +14,8 @@ public class Database {
             medicinesDB.put("Macril", "Macril. Contiene Betametasona, Gentamicina y Miconazol. Indicado para dermatopatías inflamatorias complicadas por infección bacteriana, micótica o mixta.");
             medicinesDB.put("Ernex", "Ernex. Contiene Bencidamina. Indicado para el tratamiento de inflamaciones de la garganta y de la boca.");
             medicinesDB.put("Buscapina", "Buscapina.");
+            medicinesDB.put("Adermicina", "Adermicina.");
+            medicinesDB.put("dermaglós", "dermaglós.");
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -32,6 +34,8 @@ public class Database {
             drugsDB.put("Gentamicina", "Gentamicina");
             drugsDB.put("Miconazol", "Miconazol");
             drugsDB.put("Bencidamina", "Bencidamina");
+            drugsDB.put("hidrófila", "Hidrófila");
+            drugsDB.put("estéril", "estéril");
         } catch (JSONException e) {
             e.printStackTrace();
         }

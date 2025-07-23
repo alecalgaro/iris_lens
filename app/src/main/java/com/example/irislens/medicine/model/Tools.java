@@ -1,5 +1,8 @@
 package com.example.irislens.medicine.model;
 
+import android.util.Log;
+import android.widget.Toast;
+
 import androidx.core.util.Pair;
 
 import org.apache.commons.text.similarity.LevenshteinDistance;
@@ -21,7 +24,8 @@ public class Tools {
      */
     public static String cleanupText(String text) {
         // Reemplaza cualquier caracter que no sea una letra o un numero con un espacio vacio
-        String cleanedText = text.replaceAll("[^a-zA-Z0-9]", " ");
+        //String cleanedText = text.replaceAll("[^a-zA-Z0-9]", " ");
+        String cleanedText = text.replaceAll("[^\\p{L}\\p{N}]", " ");
 
         // Divide el texto en palabras
         String[] words = cleanedText.split("\\s+");
