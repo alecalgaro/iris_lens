@@ -1,0 +1,22 @@
+[
+  {
+    "nombre": "Decidex compuesto",
+    "descripcion": "Decidex Compuesto. Contiene clorfenamina, pseudoefedrina y paracetamol. Se utiliza en tratamiento sintomático del cuadro gripal que se acompañe de fiebre o dolor y congestión nasal, sinusal u ocular."
+  },
+  {
+    "nombre": "Esoprazol",
+    "descripcion": "Esoprazol. Contiene Esomeprazol. Indicado para gastritis agudas y crónicas."
+  },
+  {
+    "nombre": "Macril",
+    "descripcion": "Macril. Contiene Betametasona, Gentamicina y Miconazol. Indicado para dermatopatías inflamatorias complicadas por infección bacteriana, micótica o mixta."
+  },
+  {
+    "nombre": "Quidex",
+    "descripcion": "Quidex."
+  },
+  {
+    "nombre": "Nalecol",
+    "descripcion": "Nalecol."
+  }
+]

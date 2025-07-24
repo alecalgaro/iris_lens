@@ -36,7 +36,7 @@ public class MedicineRecognitionPresenter {
     public MedicineRecognitionPresenter(Activity activity, TextView tvResult) {
         this.activity = activity;
         this.tvResult = tvResult;
-        this.dbManager = new DatabaseManager();
+        this.dbManager = new DatabaseManager(activity.getApplicationContext());
         this.ttsManager = new TextToSpeechManager(activity);
         this.readImageText = new ReadImageText(activity.getApplicationContext());
         this.executor = Executors.newSingleThreadExecutor();
@@ -107,8 +107,7 @@ public class MedicineRecognitionPresenter {
     // Manejar el resultado del procesamiento de la imagen
     private void handleImageProcessingResult(String result) {
         String finalResult = Tools.cleanupText(result);
-        List<Pair<String, String>> matches = Tools.searchSimilarity(finalResult, dbManager.getMedicinesDB(), dbManager.getDrugsDB());
-
+        List<Pair<String, String>> matches = Tools.searchSimilarity(finalResult, dbManager.getReadableDatabase());
         activity.runOnUiThread(() -> {
             if (!matches.isEmpty()) {
                 // Si se encontraron coincidencias, muestra las descripciones de los medicamentos

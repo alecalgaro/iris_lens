@@ -1,5 +1,10 @@
 package com.example.irislens.medicine.model;
 
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
+import android.widget.Toast;
+
 import androidx.core.util.Pair;
 
 import org.apache.commons.text.similarity.LevenshteinDistance;
@@ -43,59 +48,47 @@ public class Tools {
      * Busca similitudes entre una cadena de texto y las palabras en los JSON de medicamentos y principios activos
      *
      * @param stringTesseract La cadena de texto a comparar
-     * @param medicines       El JSON de medicamentos
-     * @param drugs           El JSON de drogas
-     * @return Una lista de pares de palabras que coinciden
+     * @param db La base de datos SQLite donde se almacenan los medicamentos y principios activos
+     * @return Una lista de pares donde cada par contiene el nombre del medicamento o principio activo y su descripcion
      */
-    public static List<Pair<String, String>> searchSimilarity(String stringTesseract, JSONObject medicines, JSONObject drugs) {
+    public static List<Pair<String, String>> searchSimilarity(String stringTesseract, SQLiteDatabase db) {
         List<Pair<String, String>> matches = new ArrayList<>();
-
-        // Convierte la cadena de texto a minúsculas para la comparacion
+        // Convierte la cadena de texto a minusculas para la comparacion
         String lowerCaseString = stringTesseract.toLowerCase();
-
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
 
         // Primero busca en la base de datos de medicamentos
-        Iterator<String> keys = medicines.keys();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            try {
-                String value = medicines.getString(key);
-                if (containsAllWords(lowerCaseString, key.toLowerCase())) {
-                    Pair<String, String> potentialMatch = new Pair<>(key, value);
-                    matches.add(potentialMatch);
-                }
-            } catch (JSONException e) {
-                e.printStackTrace();
+        Cursor cursor = db.query("medicamento", new String[]{"nombre", "descripcion"}, null, null, null, null, null);
+        while (cursor.moveToNext()) {
+            String nombre = cursor.getString(cursor.getColumnIndexOrThrow("nombre"));
+            String descripcion = cursor.getString(cursor.getColumnIndexOrThrow("descripcion"));
+            if (containsAllWords(lowerCaseString, nombre.toLowerCase())) {
+                matches.add(new Pair<>(nombre, descripcion));
             }
         }
+        cursor.close();
 
         // Si no encuentra una coincidencia en los medicamentos, busca en los principios activos
         if (matches.isEmpty()) {
             // Se divide la cadena que devuelve tesseract en palabras individuales
             String[] words = stringTesseract.split("\\s+");
-
-            // Compara cada palabra con las palabras en la base de datos de principios activos
-            for (String word : words) {
-                keys = drugs.keys();
-                while (keys.hasNext()) {
-                    String key = keys.next();
-                    try {
-                        String value = drugs.getString(key);
-                        // Calcula la distancia de Levenshtein y lo convierte a un valor de similitud
-                        double similarity = 1.0 - ((double) levenshteinDistance.apply(word.toLowerCase(), key.toLowerCase()) / Math.max(word.length(), key.length()));
-                        if (similarity >= SIMILARITY_THRESHOLD) {
-                            Pair<String, String> potentialMatch = new Pair<>(key, value);
-                            // Verificar si la coincidencia ya esta en la lista para no agregar duplicados
-                            if (!matches.contains(potentialMatch)) {
-                                matches.add(potentialMatch);
-                            }
+            cursor = db.query("principio_activo", new String[]{"nombre"}, null, null, null, null, null);
+            while (cursor.moveToNext()) {
+                String nombreDroga = cursor.getString(cursor.getColumnIndexOrThrow("nombre"));
+                // Compara cada palabra con las palabras en la base de datos de principios activos
+                for (String word : words) {
+                    // Calcula la distancia de Levenshtein y lo convierte a un valor de similitud
+                    double similarity = 1.0 - ((double) levenshteinDistance.apply(word.toLowerCase(), nombreDroga.toLowerCase()) / Math.max(word.length(), nombreDroga.length()));
+                    if (similarity >= SIMILARITY_THRESHOLD) {
+                        Pair<String, String> potentialMatch = new Pair<>(nombreDroga, nombreDroga);
+                        // Verificar si la coincidencia ya esta en la lista para no agregar duplicados
+                        if (!matches.contains(potentialMatch)) {
+                            matches.add(potentialMatch);
                         }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
                     }
                 }
             }
+            cursor.close();
         }
 
         return matches;

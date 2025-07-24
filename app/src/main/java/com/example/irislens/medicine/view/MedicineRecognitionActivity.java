@@ -1,5 +1,6 @@
 package com.example.irislens.medicine.view;
 
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -14,6 +15,7 @@ import androidx.annotation.NonNull;
 
 import com.example.irislens.common.PermissionManager;
 import com.example.irislens.R;
+import com.example.irislens.medicine.model.MedicineDbHelper;
 import com.example.irislens.medicine.presenter.MedicineRecognitionPresenter;
 
 import org.opencv.android.CameraActivity;
@@ -34,6 +36,10 @@ public class MedicineRecognitionActivity extends CameraActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Crear los registros de medicamentos y principios activos en la base de datos local
+        MedicineDbHelper dbHelper = new MedicineDbHelper(this);
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);

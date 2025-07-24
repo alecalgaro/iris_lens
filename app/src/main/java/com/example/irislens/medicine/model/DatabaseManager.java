@@ -1,27 +1,17 @@
 package com.example.irislens.medicine.model;
 
-import org.json.JSONObject;
+import android.database.sqlite.SQLiteDatabase;
+import android.content.Context;
 
 public class DatabaseManager {
-
-    private JSONObject medicinesDB;
-    private JSONObject drugsDB;
+    private final MedicineDbHelper dbHelper;
 
     // Constructor para inicializar las bases de datos de medicamentos y drogas
-    public DatabaseManager() {
-        // Base de datos de nombres de medicamentos
-        medicinesDB = Database.initializeMedicinesDB();
-
-        // Base de datos de nombres de drogas
-        drugsDB = Database.initializeDrugsDB();
+    public DatabaseManager(Context context) {
+        dbHelper = new MedicineDbHelper(context);
     }
 
-    public JSONObject getMedicinesDB() {
-        return medicinesDB;
-    }
-
-    public JSONObject getDrugsDB() {
-        return drugsDB;
+    public SQLiteDatabase getReadableDatabase() {
+        return dbHelper.getReadableDatabase();
     }
 }
-
