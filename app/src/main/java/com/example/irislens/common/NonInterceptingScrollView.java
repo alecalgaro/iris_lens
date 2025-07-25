@@ -7,7 +7,7 @@ import android.widget.ScrollView;
 
 /**
  * ScrollView personalizado que no intercepta eventos de toque.
- * Útil para permitir que el swipe sea detectado por la actividad
+ * Util para permitir que el swipe sea detectado por la actividad.
  */
 public class NonInterceptingScrollView extends ScrollView {
 
@@ -22,7 +22,7 @@ public class NonInterceptingScrollView extends ScrollView {
     /**
      * Siempre devuelve false para no interceptar eventos de toque.
      *
-     * @param ev Evento táctil.
+     * @param ev Evento tactil.
      * @return false
      */
     @Override

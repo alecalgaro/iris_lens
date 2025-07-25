@@ -12,12 +12,12 @@ import com.example.irislens.money.view.MoneyRecognitionActivity;
 import com.example.irislens.display.view.DisplayRecognitionActivity;
 
 /**
- * Clase que gestiona las funcionalidades disponibles de la aplicación.
+ * Clase que gestiona las funcionalidades disponibles de la aplicacion.
  * Permite lanzar actividades, obtener nombres descriptivos y navegar entre funcionalidades
  */
 public class Functionalities {
 
-    // Índice para la funcionalidad de reconocimiento de medicamentos, billetes y displays
+    // Indice para la funcionalidad de reconocimiento de medicamentos, billetes y displays
     public static final int MEDICINE = 0;
     public static final int MONEY = 1;
     public static final int DISPLAY = 2;
@@ -40,30 +40,30 @@ public class Functionalities {
     );
 
     /**
-     * Devuelve el índice de la siguiente funcionalidad, de forma circular
+     * Devuelve el indice de la siguiente funcionalidad, de forma circular
      *
-     * @param current Índice actual
-     * @return Índice siguiente
+     * @param current Indice actual
+     * @return Indice siguiente
      */
     public static int getNextIndex(int current) {
         return (current + 1) % FUNCTIONALITIES.size();
     }
 
     /**
-     * Devuelve el índice de la funcionalidad anterior, de forma circular
+     * Devuelve el indice de la funcionalidad anterior, de forma circular
      *
-     * @param current Índice actual
-     * @return Índice anterior
+     * @param current Indice actual
+     * @return Indice anterior
      */
     public static int getPreviousIndex(int current) {
         return (current - 1 + FUNCTIONALITIES.size()) % FUNCTIONALITIES.size();
     }
 
     /**
-     * Lanza la actividad correspondiente al índice indicado
+     * Lanza la actividad correspondiente al indice indicado
      *
      * @param context Contexto actual desde el cual se lanza
-     * @param index Índice de la funcionalidad a lanzar
+     * @param index Indice de la funcionalidad a lanzar
      */
     public static void launch(Context context, int index) {
         if (index < 0 || index >= FUNCTIONALITIES.size()) {
@@ -83,9 +83,9 @@ public class Functionalities {
     }
 
     /**
-     * Devuelve el nombre descriptivo de una funcionalidad según su índice
+     * Devuelve el nombre descriptivo de una funcionalidad segun su indice
      *
-     * @param index Índice de la funcionalidad
+     * @param index Indice de la funcionalidad
      * @return Nombre descriptivo
      */
     public static String getName(int index) {

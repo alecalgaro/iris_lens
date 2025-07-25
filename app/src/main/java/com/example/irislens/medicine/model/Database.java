@@ -16,6 +16,7 @@ public class Database {
             medicinesDB.put("Buscapina", "Buscapina.");
             medicinesDB.put("Adermicina", "Adermicina.");
             medicinesDB.put("dermaglós", "dermaglós.");
+            medicinesDB.put("Hipoglós", "Hipoglós.");
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -36,6 +37,8 @@ public class Database {
             drugsDB.put("Bencidamina", "Bencidamina");
             drugsDB.put("hidrófila", "Hidrófila");
             drugsDB.put("estéril", "estéril");
+            drugsDB.put("Óxido de Zinc", "Óxido de Zinc");
+            drugsDB.put("Ácido Bórico", "Ácido Bórico");
         } catch (JSONException e) {
             e.printStackTrace();
         }

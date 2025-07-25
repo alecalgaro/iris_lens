@@ -24,10 +24,10 @@ import org.opencv.android.OpenCVLoader;
  */
 public class MedicineRecognitionActivity extends BaseSwipeActivity {
 
-    // Encargado de manejar los permisos necesarios para acceder a la cámara y otros recursos
+    // Encargado de manejar los permisos necesarios para acceder a la camara y otros recursos
     private PermissionManager permissionManager;
 
-    // Componente visual de OpenCV encargado de mostrar la vista en vivo desde la cámara
+    // Componente visual de OpenCV encargado de mostrar la vista en vivo desde la camara
     private CameraBridgeViewBase cameraBridgeViewBase;
 
     // Matriz que contiene la imagen capturada en formato RGBA
@@ -36,17 +36,17 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
     // TextView donde se muestra el resultado del reconocimiento de medicamentos
     private TextView tvResult;
 
-    // Encapsula la lógica de presentación para el reconocimiento de medicamentos
+    // Encapsula la logica de presentacion para el reconocimiento de medicamentos
     private MedicineRecognitionPresenter presenter;
 
     /**
-     * Configura la cámara, permisos y procesamiento de imagen
+     * Configura la camara, permisos y procesamiento de imagen
      *
      * @param savedInstanceState Estado guardado
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        currentFunctionalityIndex = Functionalities.MEDICINE; // índice para esta funcionalidad
+        currentFunctionalityIndex = Functionalities.MEDICINE; // indice para esta funcionalidad
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_medicine_recognition);
 
@@ -100,15 +100,14 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
 
                     presenter.onFrame(originalImage);
                 }
-
-                //return mRgba;
+                // Devolver la imagen original para que se muestre en la vista de la camara
                 return originalImage;
             }
         });
     }
 
     /**
-     * Desactiva la cámara al pausar la actividad
+     * Desactiva la camara al pausar la actividad
      */
     @Override
     protected void onPause() {
@@ -156,11 +155,10 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
     }
 
     /**
-     * Intercepta todos los eventos táctiles antes de que sean procesados por las vistas hijas
+     * Intercepta todos los eventos tactiles antes de que sean procesados por las vistas hijas
      */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-        //gestureDetector.onTouchEvent(ev);
         return super.dispatchTouchEvent(ev);
     }
 }

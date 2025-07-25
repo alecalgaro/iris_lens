@@ -15,18 +15,18 @@ import org.opencv.android.CameraActivity;
  */
 public abstract class BaseSwipeActivity extends CameraActivity {
 
-    // Distancia mínima en píxeles que debe recorrer el dedo horizontalmente
+    // Distancia minima en pixeles que debe recorrer el dedo horizontalmente
     // para que el gesto sea considerado un "swipe" (deslizamiento)
     private static final int SWIPE_THRESHOLD = 100;
 
-    // Velocidad mínima (en píxeles/segundo) que debe alcanzar el gesto para
+    // Velocidad minima (en píxeles/segundo) que debe alcanzar el gesto para
     // ser reconocido como un "swipe"
     private static final int SWIPE_VELOCITY_THRESHOLD = 100;
 
     // Detecta gestos del usuario
     protected GestureDetector gestureDetector;
 
-    // Índice actual de la funcionalidad (debe establecerse en cada actividad que herede de esta clase)
+    // Indice actual de la funcionalidad (debe establecerse en cada actividad que herede de esta clase)
     protected int currentFunctionalityIndex = 0; // se sobrescribe por cada actividad
 
     /**
@@ -59,7 +59,7 @@ public abstract class BaseSwipeActivity extends CameraActivity {
                 return false;
             }
 
-            // Detecta doble tap en pantalla (útil, por ejemplo, para pausar un audio)
+            // Detecta doble tap en pantalla (util, por ejemplo, para pausar un audio)
             @Override
             public boolean onDoubleTap(MotionEvent e) {
                 onDoubleTapDetected();
@@ -71,7 +71,7 @@ public abstract class BaseSwipeActivity extends CameraActivity {
     /**
      * Procesa eventos de toque, incluyendo gestos de swipe
      *
-     * @param ev Evento táctil
+     * @param ev Evento tactil
      * @return true si el evento fue manejado
      */
     @Override
@@ -82,8 +82,8 @@ public abstract class BaseSwipeActivity extends CameraActivity {
     }
 
     /**
-     * Configura una capa táctil transparente que detecta gestos de deslizamiento (swipe).
-     * Esta capa se coloca sobre la interfaz para capturar eventos táctiles y
+     * Configura una capa tactil transparente que detecta gestos de deslizamiento (swipe).
+     * Esta capa se coloca sobre la interfaz para capturar eventos tactiles y
      * delegarlos al detector de gestos.
      * Esta capa debe estar definida en el layout de la actividad
      */
