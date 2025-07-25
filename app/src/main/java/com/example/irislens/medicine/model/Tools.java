@@ -2,20 +2,12 @@ package com.example.irislens.medicine.model;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
-import android.widget.Toast;
-
-import android.util.Log;
-import android.widget.Toast;
 
 import androidx.core.util.Pair;
 
 import org.apache.commons.text.similarity.LevenshteinDistance;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class Tools {

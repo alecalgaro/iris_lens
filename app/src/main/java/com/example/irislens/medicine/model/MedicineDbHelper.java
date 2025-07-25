@@ -14,13 +14,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+/**
+ * Clase que extiende SQLiteOpenHelper para manejar la creacion y actualizacion
+ * de la base de datos de medicamentos.
+ * Utiliza MedicineContract para definir la estructura de las tablas y crea los datos iniciales
+ * a partir de un archivo JSON almacenado en los assets de la aplicacion.
+ */
 public class MedicineDbHelper extends SQLiteOpenHelper {
-    /**
-     * Clase que extiende SQLiteOpenHelper para manejar la creacion y actualizacion
-     * de la base de datos de medicamentos.
-     * Utiliza MedicineContract para definir la estructura de las tablas y crea los datos iniciales
-     * a partir de un archivo JSON almacenado en los assets de la aplicacion.
-     */
     private static final String DATABASE_NAME = "medicamentos_db";
     private static final int DATABASE_VERSION = 1;
     private final Context mContext;

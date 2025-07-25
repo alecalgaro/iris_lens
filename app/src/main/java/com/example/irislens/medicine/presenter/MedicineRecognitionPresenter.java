@@ -21,6 +21,10 @@ import java.util.concurrent.Executors;
 
 import androidx.core.util.Pair;
 
+/**
+ * Presenter para el reconocimiento de medicamentos.
+ * Maneja la logica de procesamiento de imagenes para el reconocimiento.
+ */
 public class MedicineRecognitionPresenter {
     private final Activity activity;
     private final TextView tvResult;

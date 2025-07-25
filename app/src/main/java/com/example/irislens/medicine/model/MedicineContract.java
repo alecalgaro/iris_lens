@@ -2,12 +2,12 @@ package com.example.irislens.medicine.model;
 
 import android.provider.BaseColumns;
 
+/**
+ * Clase que define la estructura de la base de datos de medicamentos.
+ * Contiene las constantes que representan los nombres de las tablas y columnas
+ * de la base de datos.
+ * */
 public final class MedicineContract {
-    /**
-     * Clase que define la estructura de la base de datos de medicamentos.
-     * Contiene las constantes que representan los nombres de las tablas y columnas
-     * de la base de datos.
-     * */
     private MedicineContract() {}
 
     public static class MedicineEntry implements BaseColumns {

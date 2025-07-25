@@ -14,7 +14,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public class ReadImageText {
-
     private TessBaseAPI tess;
     private String folderTessDataName = "tessdata";
     private String pathDir;
