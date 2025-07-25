@@ -2,6 +2,7 @@ package com.example.irislens.medicine.model;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 
 import androidx.core.util.Pair;
 
@@ -36,6 +37,7 @@ public class Tools {
         }
 
         // Devuelve el texto limpio
+        Log.d("Tools", "Texto limpio: " + result.toString().trim());
         return result.toString().trim();
     }
 
@@ -63,23 +65,36 @@ public class Tools {
         }
         cursor.close();
 
-        // Si no encuentra una coincidencia en los medicamentos, busca en los principios activos
+        // Obtener todas las palabras del texto detectado
+        String[] words = lowerCaseString.split("\\s+");
+        List<String> ngrams = new ArrayList<>();
+
+        // Generar n-gramas de 1 a 3 palabras para contemplar principios activos cuyos nombres
+        // sean combinaciones de palabras
+        for (int n = 1; n <= 3; n++) {
+            for (int i = 0; i <= words.length - n; i++) {
+                StringBuilder sb = new StringBuilder();
+                for (int j = 0; j < n; j++) {
+                    if (j > 0) sb.append(" ");
+                    sb.append(words[i + j]);
+                }
+                ngrams.add(sb.toString());
+            }
+        }
+
+        // Si no hay coincidencias en medicamentos, buscar en principios activos comparando con n-gramas
         if (matches.isEmpty()) {
-            // Se divide la cadena que devuelve tesseract en palabras individuales
-            String[] words = stringTesseract.split("\\s+");
             cursor = db.query("principio_activo", new String[]{"nombre"}, null, null, null, null, null);
             while (cursor.moveToNext()) {
-                String nombreDroga = cursor.getString(cursor.getColumnIndexOrThrow("nombre"));
-                // Compara cada palabra con las palabras en la base de datos de principios activos
-                for (String word : words) {
-                    // Calcula la distancia de Levenshtein y lo convierte a un valor de similitud
-                    double similarity = 1.0 - ((double) levenshteinDistance.apply(word.toLowerCase(), nombreDroga.toLowerCase()) / Math.max(word.length(), nombreDroga.length()));
+                String nombreDroga = cursor.getString(cursor.getColumnIndexOrThrow("nombre")).toLowerCase();
+                for (String ngram : ngrams) {
+                    double similarity = 1.0 - ((double) levenshteinDistance.apply(ngram, nombreDroga) / Math.max(ngram.length(), nombreDroga.length()));
                     if (similarity >= SIMILARITY_THRESHOLD) {
-                        Pair<String, String> potentialMatch = new Pair<>(nombreDroga, nombreDroga);
-                        // Verificar si la coincidencia ya esta en la lista para no agregar duplicados
-                        if (!matches.contains(potentialMatch)) {
-                            matches.add(potentialMatch);
+                        Pair<String, String> match = new Pair<>(cursor.getString(cursor.getColumnIndexOrThrow("nombre")), cursor.getString(cursor.getColumnIndexOrThrow("nombre")));
+                        if (!matches.contains(match)) {
+                            matches.add(match);
                         }
+                        break;
                     }
                 }
             }

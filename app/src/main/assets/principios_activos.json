@@ -4,5 +4,8 @@
   { "nombre": "Ibuprofeno" },
   { "nombre": "Amoxicilina" },
   { "nombre": "Ciprofloxacina" },
-  { "nombre": "Dexametasona" }
+  { "nombre": "Dexametasona" },
+  { "nombre": "Vitamina A" },
+  { "nombre": "Óxido de Zinc" },
+  { "nombre": "Ácido Bórico" }
 ]

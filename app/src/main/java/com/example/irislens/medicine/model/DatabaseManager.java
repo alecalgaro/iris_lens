@@ -9,7 +9,6 @@ import android.content.Context;
 public class DatabaseManager {
     private final MedicineDbHelper dbHelper;
 
-    // Constructor para inicializar las bases de datos de medicamentos y drogas
     public DatabaseManager(Context context) {
         dbHelper = new MedicineDbHelper(context);
     }
