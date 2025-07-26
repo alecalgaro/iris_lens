@@ -1,26 +1,194 @@
 [
   {
-    "nombre": "Decidex compuesto",
-    "descripcion": "Decidex Compuesto. Contiene clorfenamina, pseudoefedrina y paracetamol. Se utiliza en tratamiento sintomático del cuadro gripal que se acompañe de fiebre o dolor y congestión nasal, sinusal u ocular."
+    "nombre": "Decidex Compuesto",
+    "descripcion": ""
   },
   {
-    "nombre": "Esoprazol",
-    "descripcion": "Esoprazol. Contiene Esomeprazol. Indicado para gastritis agudas y crónicas."
+    "nombre": "Lotrial",
+    "descripcion": ""
   },
   {
-    "nombre": "Macril",
-    "descripcion": "Macril. Contiene Betametasona, Gentamicina y Miconazol. Indicado para dermatopatías inflamatorias complicadas por infección bacteriana, micótica o mixta."
+    "nombre": "Aspirinetas",
+    "descripcion": ""
   },
   {
-    "nombre": "Quidex",
-    "descripcion": "Quidex."
+    "nombre": "Qura Plus",
+    "descripcion": ""
   },
   {
-    "nombre": "Nalecol",
-    "descripcion": "Nalecol."
+    "nombre": "Paracetamol Grip",
+    "descripcion": ""
   },
   {
-    "nombre": "Hipoglós",
-    "descripcion": "Hipoglós."
+    "nombre": "Neuryl",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Pantocas",
+    "descripcion": ""
+  },
+  {
+    "nombre": "AtorMax",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Nabratín",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Levron",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Tetralgin",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Doricoxib",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Oldrén",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Plenacor",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Sactan",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Povibac",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Tafirol",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Seum",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Testri",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Actron",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Somit",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Taural",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Lamocas",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Hemax",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Capexan",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Dramamine",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Femorel",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Pelmec",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Glaucostat",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Fluxvir",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Alikal",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Alercas",
+    "descripcion": ""
+  },
+  {
+    "nombre": "IbuEvanol",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Ibuevanol Forte",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Factor A-G",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Hidrogasa",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Adermicina",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Dermaglós solar",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Hepatalgina",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Piecidex",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Lactid",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Irix",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Gotabiotic",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Amoxidal",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Refrianex",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Buscapina Duo",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Curitas",
+    "descripcion": ""
+  },
+  {
+    "nombre": "Caladryl",
+    "descripcion": ""
   }
 ]

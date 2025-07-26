@@ -1,11 +1,182 @@
 [
-  { "nombre": "Paracetamol" },
-  { "nombre": "Esomeprazol" },
-  { "nombre": "Ibuprofeno" },
-  { "nombre": "Amoxicilina" },
-  { "nombre": "Ciprofloxacina" },
-  { "nombre": "Dexametasona" },
-  { "nombre": "Vitamina A" },
-  { "nombre": "Óxido de Zinc" },
-  { "nombre": "Ácido Bórico" }
+  {
+    "nombre": "Clorfenamina"
+  },
+  {
+    "nombre": "Pseudoefedrina"
+  },
+  {
+    "nombre": "Paracetamol"
+  },
+  {
+    "nombre": "Enalapril"
+  },
+  {
+    "nombre": "Aspirina"
+  },
+  {
+    "nombre": "Clonazepam"
+  },
+  {
+    "nombre": "Bencidamina"
+  },
+  {
+    "nombre": "Bromhexina Clorhidrato"
+  },
+  {
+    "nombre": "Loratadina"
+  },
+  {
+    "nombre": "Bromhexina"
+  },
+  {
+    "nombre": "Pantoprazol"
+  },
+  {
+    "nombre": "Atorvastatina"
+  },
+  {
+    "nombre": "Clopidogrel"
+  },
+  {
+    "nombre": "Levetiracetam"
+  },
+  {
+    "nombre": "Ergotamina"
+  },
+  {
+    "nombre": "Cafeína"
+  },
+  {
+    "nombre": "Dipirona"
+  },
+  {
+    "nombre": "Metoclopramida"
+  },
+  {
+    "nombre": "Etoricoxib"
+  },
+  {
+    "nombre": "Eplerenona"
+  },
+  {
+    "nombre": "Atenolol"
+  },
+  {
+    "nombre": "Telmisartan"
+  },
+  {
+    "nombre": "Iodopovidona"
+  },
+  {
+    "nombre": "Ácido Ibandrónico"
+  },
+  {
+    "nombre": "Vitamina D3"
+  },
+  {
+    "nombre": "Ibuprofeno"
+  },
+  {
+    "nombre": "Zoldipem"
+  },
+  {
+    "nombre": "Famotidina"
+  },
+  {
+    "nombre": "Lamotrigina"
+  },
+  {
+    "nombre": "Eritropoyetina"
+  },
+  {
+    "nombre": "Capecitabina"
+  },
+  {
+    "nombre": "Dimenhidrinato"
+  },
+  {
+    "nombre": "Amlodipina"
+  },
+  {
+    "nombre": "Latanoprost"
+  },
+  {
+    "nombre": "Timilol"
+  },
+  {
+    "nombre": "Vacuna Anti Influenza"
+  },
+  {
+    "nombre": "Bicarbonato"
+  },
+  {
+    "nombre": "Carbonato de Sodio"
+  },
+  {
+    "nombre": "Ácido Cítrico"
+  },
+  {
+    "nombre": "Flexofenadina Clorhidrato"
+  },
+  {
+    "nombre": "Simeticona"
+  },
+  {
+    "nombre": "Alcachofa"
+  },
+  {
+    "nombre": "Boldo"
+  },
+  {
+    "nombre": "Daucus Carota"
+  },
+  {
+    "nombre": "Mentol"
+  },
+  {
+    "nombre": "Terbinafina"
+  },
+  {
+    "nombre": "Hidrocortisona"
+  },
+  {
+    "nombre": "Tetrahidrozolina"
+  },
+  {
+    "nombre": "Clorhidrato"
+  },
+  {
+    "nombre": "Tobramicina"
+  },
+  {
+    "nombre": "Amoxicilina"
+  },
+  {
+    "nombre": "Hioscina butilbromuro"
+  },
+  {
+    "nombre": "Tela elástica"
+  },
+  {
+    "nombre": "Vitamina A"
+  },
+  {
+    "nombre": "Óxido de Zinc"
+  },
+  {
+    "nombre": "Benzocaína"
+  },
+  {
+    "nombre": "Ácido Bórico"
+  },
+  {
+    "nombre": "Cloruro de Benzalconio"
+  },
+  {
+    "nombre": "Difenhidramina"
+  },
+  {
+    "nombre": "Calamina"
+  }
 ]
