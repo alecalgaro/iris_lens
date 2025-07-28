@@ -8,15 +8,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:text="Funcionalidad"
-        android:textSize="24sp" />
-
-    <!-- capa para swipe -->
-    <View
-        android:id="@+id/touch_layer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clickable="true"
+        android:text="Reconocimiento de billetes (próximamente)"
+        android:textSize="24sp"
+        android:textColor="#FAFAFA"
+        android:importantForAccessibility="yes"
         android:focusable="true"
-        android:background="@android:color/transparent" />
+        android:contentDescription="Reconocimiento de billetes (próximamente). Deslizar hacia izquierda o derecha para cambiar de funcionalidad." />
 </FrameLayout>

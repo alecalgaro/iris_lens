@@ -1,11 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#282828">
 
-    <!-- Contenedor para cámara y scroll, para conservar layout relativo -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -30,17 +28,9 @@
                 android:layout_marginBottom="10dp"
                 android:textAlignment="center"
                 android:text=""
-                android:textColor="#FAFAFA" />
+                android:textColor="#FAFAFA"
+                android:importantForAccessibility="yes"
+                android:focusable="true" />
         </ScrollView>
-
     </RelativeLayout>
-
-    <!-- Capa transparente para detectar gestos (swipe) -->
-    <View
-        android:id="@+id/touch_layer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="@android:color/transparent" />
 </FrameLayout>

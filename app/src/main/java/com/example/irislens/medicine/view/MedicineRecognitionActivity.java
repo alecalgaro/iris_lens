@@ -60,9 +60,6 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         tvResult = findViewById(R.id.tvResult);
         tvResult.setText("Reconocer medicamento");
 
-        // Captura swipe en toda la pantalla
-        setupSwipeLayer();
-
         // Mantener la pantalla encendida mientras esta actividad esta en primer plano
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
