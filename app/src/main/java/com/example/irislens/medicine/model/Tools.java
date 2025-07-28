@@ -10,6 +10,8 @@ import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 public class Tools {
     private static final double SIMILARITY_THRESHOLD = 0.8;
@@ -21,16 +23,16 @@ public class Tools {
      * @return El texto limpio
      */
     public static String cleanupText(String text) {
-        // Reemplaza cualquier caracter que no sea una letra o un numero con un espacio vacio
-        String cleanedText = text.replaceAll("[^\\p{L}\\p{N}]", " ");
+        // Reemplaza cualquier caracter que no sea una letra o un numero o un guión "-" con un espacio vacio
+        String cleanedText = text.replaceAll("[^\\p{L}\\p{N}-]", " ");
 
         // Divide el texto en palabras
         String[] words = cleanedText.split("\\s+");
 
         StringBuilder result = new StringBuilder();
         for (String word : words) {
-            // Solo agrega palabras que tengan mas de 3 caracteres
-            if (word.length() > 3) {
+            // Solo agrega palabras que tengan mas de 1 caracter
+            if (word.length() > 1) {
                 result.append(word);
                 result.append(" ");
             }
@@ -48,8 +50,10 @@ public class Tools {
      * @param db La base de datos SQLite donde se almacenan los medicamentos y principios activos
      * @return Una lista de pares donde cada par contiene el nombre del medicamento o principio activo y su descripcion
      */
-    public static List<Pair<String, String>> searchSimilarity(String stringTesseract, SQLiteDatabase db) {
+    public static Map<String, Object> searchSimilarity(String stringTesseract, SQLiteDatabase db) {
+        Map<String, Object> result = new HashMap<>();
         List<Pair<String, String>> matches = new ArrayList<>();
+        boolean multiplesMedicamentos = false;
         // Convierte la cadena de texto a minusculas para la comparacion
         String lowerCaseString = stringTesseract.toLowerCase();
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
@@ -65,25 +69,31 @@ public class Tools {
         }
         cursor.close();
 
-        // Obtener todas las palabras del texto detectado
-        String[] words = lowerCaseString.split("\\s+");
-        List<String> ngrams = new ArrayList<>();
-
-        // Generar n-gramas de 1 a 3 palabras para contemplar principios activos cuyos nombres
-        // sean combinaciones de palabras
-        for (int n = 1; n <= 3; n++) {
-            for (int i = 0; i <= words.length - n; i++) {
-                StringBuilder sb = new StringBuilder();
-                for (int j = 0; j < n; j++) {
-                    if (j > 0) sb.append(" ");
-                    sb.append(words[i + j]);
-                }
-                ngrams.add(sb.toString());
-            }
+        if (matches.size() >= 2) {
+            Log.e("Match", "Match: " + matches.toString().trim());
+            Log.e("Match", "Se detectaron " + matches.size() + " medicamentos. Debe identificarse uno de forma unívoca.");
+            // Puedes también registrar este mensaje en un log o mostrarlo en interfaz si es Android
+            multiplesMedicamentos = true;
         }
-
         // Si no hay coincidencias en medicamentos, buscar en principios activos comparando con n-gramas
-        if (matches.isEmpty()) {
+        else if (matches.isEmpty()) {
+            // Obtener todas las palabras del texto detectado
+            String[] words = lowerCaseString.split("\\s+");
+            List<String> ngrams = new ArrayList<>();
+
+            // Generar n-gramas de 1 a 3 palabras para contemplar principios activos cuyos nombres
+            // sean combinaciones de palabras
+            for (int n = 1; n <= 3; n++) {
+                for (int i = 0; i <= words.length - n; i++) {
+                    StringBuilder sb = new StringBuilder();
+                    for (int j = 0; j < n; j++) {
+                        if (j > 0) sb.append(" ");
+                        sb.append(words[i + j]);
+                    }
+                    ngrams.add(sb.toString());
+                }
+            }
+
             cursor = db.query("principio_activo", new String[]{"nombre"}, null, null, null, null, null);
             while (cursor.moveToNext()) {
                 String nombreDroga = cursor.getString(cursor.getColumnIndexOrThrow("nombre")).toLowerCase();
@@ -101,7 +111,9 @@ public class Tools {
             cursor.close();
         }
 
-        return matches;
+        result.put("matches", matches);
+        result.put("multiplesMedicamentos", multiplesMedicamentos);
+        return result;
     }
 
     /**

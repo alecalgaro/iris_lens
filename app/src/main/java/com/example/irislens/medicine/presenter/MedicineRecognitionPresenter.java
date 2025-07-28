@@ -20,6 +20,7 @@ import org.opencv.core.Mat;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.Map;
 
 import androidx.core.util.Pair;
 
@@ -117,27 +118,31 @@ public class MedicineRecognitionPresenter {
     // Manejar el resultado del procesamiento de la imagen
     private void handleImageProcessingResult(String result) {
         String finalResult = Tools.cleanupText(result);
-        List<Pair<String, String>> matches = Tools.searchSimilarity(finalResult, dbManager.getReadableDatabase());
+        Map<String, Object> searchResult = Tools.searchSimilarity(finalResult, dbManager.getReadableDatabase());
+        List<Pair<String, String>> matches = (List<Pair<String, String>>) searchResult.get("matches");
+        boolean multiples = (boolean) searchResult.get("multiplesMedicamentos");
+
         activity.runOnUiThread(() -> {
             if (!matches.isEmpty()) {
-                // Si se encontraron coincidencias, muestra las descripciones de los medicamentos
-                StringBuilder sb = new StringBuilder();
-                for (Pair<String, String> match : matches) {
-                    sb.append(match.second).append("\n");
+                if (multiples) {
+                    ttsManager.speak("Se detectaron varios medicamentos. Por favor, seleccione solo uno.");
+                } else {
+                    StringBuilder sb = new StringBuilder();
+                    for (Pair<String, String> match : matches) {
+                        sb.append(match.second).append("\n");
+                    }
+                    ttsManager.speak(sb.toString());
+                    tvResult.setText(sb.toString());
                 }
-                ttsManager.speak(sb.toString());
-                tvResult.setText(sb.toString());
                 noDetectionCount = 0;
                 rotate = false;
                 rotationState = 0;
             } else {
-                // Si no se encontraron coincidencias
                 noDetectionCount++;
                 rotate = true;
                 tvResult.setText("");
             }
 
-            // Si no se ha detectado nada en 8 intentos, reproducir un mensaje de audio
             if (noDetectionCount == 8) {
                 ttsManager.speak("No se pudo detectar. Mejore la posición de la cámara o del objeto.");
                 noDetectionCount = 0;

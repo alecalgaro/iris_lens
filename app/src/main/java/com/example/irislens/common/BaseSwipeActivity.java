@@ -70,6 +70,9 @@ public abstract class BaseSwipeActivity extends CameraActivity {
 
     /**
      * Procesa eventos de toque, incluyendo gestos de swipe
+     * Intercepta todos los eventos táctiles del activity entero,
+     * por lo tanto, no se necesita una capa extra (touch_layer)
+     * para capturar los eventos de swipe o doble tap.
      *
      * @param ev Evento tactil
      * @return true si el evento fue manejado
@@ -79,19 +82,6 @@ public abstract class BaseSwipeActivity extends CameraActivity {
         boolean handled = gestureDetector.onTouchEvent(ev);
         if (handled) return true; // el gesto fue procesado
         return super.dispatchTouchEvent(ev);
-    }
-
-    /**
-     * Configura una capa tactil transparente que detecta gestos de deslizamiento (swipe).
-     * Esta capa se coloca sobre la interfaz para capturar eventos tactiles y
-     * delegarlos al detector de gestos.
-     * Esta capa debe estar definida en el layout de la actividad
-     */
-    protected void setupSwipeLayer() {
-        View touchLayer = findViewById(R.id.touch_layer);
-        if (touchLayer != null) {
-            touchLayer.setOnTouchListener((v, event) -> gestureDetector.onTouchEvent(event));
-        }
     }
 
     /**
