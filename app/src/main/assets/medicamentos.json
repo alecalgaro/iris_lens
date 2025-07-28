@@ -120,10 +120,6 @@
     "descripcion": "Fluxvir"
   },
   {
-    "nombre": "Alikal",
-    "descripcion": "Alikal"
-  },
-  {
     "nombre": "Alercas",
     "descripcion": "Alercas"
   },
@@ -190,5 +186,13 @@
   {
     "nombre": "Caladryl",
     "descripcion": "Caladryl"
+  },
+  {
+    "nombre": "Ernex",
+    "descripcion": "Ernex"
+  },
+  {
+    "nombre": "Corteroid",
+    "descripcion": "Corteroid"
   }
 ]

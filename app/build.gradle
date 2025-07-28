@@ -1,5 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
+
+    // Google services Gradle plugin
+    id 'com.google.gms.google-services'
 }
 
 android {
@@ -35,11 +38,14 @@ dependencies {
     implementation 'cz.adaptech.tesseract4android:tesseract4android:4.6.0'
     // commons-text para calcular similitud de palabras
     implementation 'org.apache.commons:commons-text:1.9'
+    // Firebase BoM
+    implementation platform('com.google.firebase:firebase-bom:34.0.0')
 
     implementation libs.appcompat
     implementation libs.material
     implementation libs.activity
     implementation libs.constraintlayout
+    implementation libs.firebase.firestore
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

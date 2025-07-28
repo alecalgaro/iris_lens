@@ -5,7 +5,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import java.util.Collections;
 import java.util.List;
 import androidx.annotation.NonNull;
@@ -52,13 +55,26 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_medicine_recognition);
 
-        // Crear los registros de medicamentos y principios activos en la base de datos local
-        MedicineDbHelper dbHelper = new MedicineDbHelper(this);
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
         tvResult.setText("Reconocer medicamento");
+
+        // Inicializar PermissionManager y solicitar permiso de camara
+        permissionManager = new PermissionManager();
+        permissionManager.getPermissions(this);
+
+        // Inicializar Presenter para funcionalidad de reconocimiento de medicamentos
+        presenter = new MedicineRecognitionPresenter(this, tvResult);
+
+
+        // Crear los registros de medicamentos y principios activos en la base de datos local
+        MedicineDbHelper dbHelper = new MedicineDbHelper(this);
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        if(db != null) {
+            Toast.makeText(this, "Sincronizando con Firestore...", Toast.LENGTH_SHORT).show();
+            tvResult.setText("Sincronizando...");
+            presenter.sincronizarConFirestore(db);
+        }
 
         // Captura swipe en toda la pantalla
         setupSwipeLayer();
@@ -73,13 +89,6 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
             Log.d("OpenCVInit", "OpenCV se inicializó correctamente");
             cameraBridgeViewBase.enableView();
         }
-
-        // Inicializar PermissionManager y solicitar permiso de camara
-        permissionManager = new PermissionManager();
-        permissionManager.getPermissions(this);
-
-        // Inicializar Presenter para funcionalidad de reconocimiento de medicamentos
-        presenter = new MedicineRecognitionPresenter(this, tvResult);
 
         cameraBridgeViewBase.setCvCameraViewListener(new CameraBridgeViewBase.CvCameraViewListener2() {
             @Override
@@ -99,10 +108,11 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
 
                 if (presenter != null) {
                     // Rotar 90 grados (ya que por defecto la camara de OpenCV viene rotada)
-                    // Solo rotar si la imagen está en landscape y el dispositivo está en portrait
-                    if (originalImage.width() > originalImage.height()) {
-                        originalImage = presenter.rotateImage(originalImage);
-                    }
+//                    // Solo rotar si la imagen está en landscape y el dispositivo está en portrait
+//                    if (originalImage.width() > originalImage.height()) {
+//                        originalImage = presenter.rotateImage(originalImage);
+//                    }
+                    originalImage = presenter.rotateImage(originalImage);
 
                     presenter.onFrame(originalImage);
                 }

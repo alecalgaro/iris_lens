@@ -21,9 +21,6 @@
     "nombre": "Bencidamina"
   },
   {
-    "nombre": "Bromhexina Clorhidrato"
-  },
-  {
     "nombre": "Loratadina"
   },
   {
@@ -54,6 +51,9 @@
     "nombre": "Metoclopramida"
   },
   {
+    "nombre": "Clorfeniramina"
+  },
+  {
     "nombre": "Etoricoxib"
   },
   {
@@ -78,7 +78,7 @@
     "nombre": "Ibuprofeno"
   },
   {
-    "nombre": "Zoldipem"
+    "nombre": "Zolpidem"
   },
   {
     "nombre": "Famotidina"
@@ -102,22 +102,13 @@
     "nombre": "Latanoprost"
   },
   {
-    "nombre": "Timilol"
+    "nombre": "Timolol"
   },
   {
     "nombre": "Vacuna Anti Influenza"
   },
   {
-    "nombre": "Bicarbonato"
-  },
-  {
-    "nombre": "Carbonato de Sodio"
-  },
-  {
-    "nombre": "Ácido Cítrico"
-  },
-  {
-    "nombre": "Flexofenadina Clorhidrato"
+    "nombre": "Flexofenadina"
   },
   {
     "nombre": "Simeticona"
@@ -178,5 +169,8 @@
   },
   {
     "nombre": "Calamina"
+  },
+  {
+    "nombre": "Betametasona"
   }
 ]

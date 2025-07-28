@@ -1,6 +1,9 @@
 package com.example.irislens.medicine.presenter;
 
 import android.app.Activity;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.Looper;
@@ -19,6 +22,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import androidx.core.util.Pair;
+
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 /**
  * Presenter para el reconocimiento de medicamentos.
@@ -148,6 +154,50 @@ public class MedicineRecognitionPresenter {
             ttsManager.stop();
             tvResult.setText("");
         }
+    }
+
+    /**
+     * Sincronizar la base de datos local con Cloud Firestore.
+     * Crea registros de medicamentos y principios activos si no existen en la base de datos local.
+     */
+    public void sincronizarConFirestore(SQLiteDatabase db) {
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+
+        // Medicamentos
+        firestore.collection("medicamentos").get().addOnSuccessListener(query -> {
+            for (DocumentSnapshot doc : query.getDocuments()) {
+                String nombre = doc.getString("nombre");
+                String descripcion = doc.getString("descripcion");
+
+                Cursor cursor = db.query("medicamento", new String[]{"nombre"}, "nombre = ?", new String[]{nombre}, null, null, null);
+                boolean existe = cursor.moveToFirst();
+                cursor.close();
+
+                if (!existe) {
+                    ContentValues values = new ContentValues();
+                    values.put("nombre", nombre);
+                    values.put("descripcion", descripcion);
+                    db.insert("medicamento", null, values);
+                }
+            }
+        });
+
+        // Principios activos
+        firestore.collection("principios_activos").get().addOnSuccessListener(query -> {
+            for (DocumentSnapshot doc : query.getDocuments()) {
+                String nombre = doc.getString("nombre");
+
+                Cursor cursor = db.query("principio_activo", new String[]{"nombre"}, "nombre = ?", new String[]{nombre}, null, null, null);
+                boolean existe = cursor.moveToFirst();
+                cursor.close();
+
+                if (!existe) {
+                    ContentValues values = new ContentValues();
+                    values.put("nombre", nombre);
+                    db.insert("principio_activo", null, values);
+                }
+            }
+        });
     }
 
     // Liberar recursos
