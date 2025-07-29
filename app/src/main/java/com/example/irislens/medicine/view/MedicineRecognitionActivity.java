@@ -65,18 +65,13 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         // Inicializar Presenter para funcionalidad de reconocimiento de medicamentos
         presenter = new MedicineRecognitionPresenter(this, tvResult);
 
-
         // Crear los registros de medicamentos y principios activos en la base de datos local
         MedicineDbHelper dbHelper = new MedicineDbHelper(this);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         if(db != null) {
-            Toast.makeText(this, "Sincronizando con Firestore...", Toast.LENGTH_SHORT).show();
-            tvResult.setText("Sincronizando...");
+            Toast.makeText(this, "Actualizando base de datos...", Toast.LENGTH_SHORT).show();
             presenter.sincronizarConFirestore(db);
         }
-
-        // Captura swipe en toda la pantalla
-        setupSwipeLayer();
 
         // Mantener la pantalla encendida mientras esta actividad esta en primer plano
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

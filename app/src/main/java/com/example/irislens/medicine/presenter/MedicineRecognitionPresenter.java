@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.irislens.medicine.model.DatabaseManager;
 import com.example.irislens.common.ImageProcessor;
@@ -164,45 +165,63 @@ public class MedicineRecognitionPresenter {
     /**
      * Sincronizar la base de datos local con Cloud Firestore.
      * Crea registros de medicamentos y principios activos si no existen en la base de datos local.
+     * Se aplican validaciones para evitar duplicados y asegurar que los campos necesarios esten
+     * presentes en los documentos de Firestore.
+     *
+     * @param db Base de datos SQLite donde se almacenan los registros.
      */
     public void sincronizarConFirestore(SQLiteDatabase db) {
         FirebaseFirestore firestore = FirebaseFirestore.getInstance();
 
         // Medicamentos
-        firestore.collection("medicamentos").get().addOnSuccessListener(query -> {
-            for (DocumentSnapshot doc : query.getDocuments()) {
-                String nombre = doc.getString("nombre");
-                String descripcion = doc.getString("descripcion");
+        firestore.collection("medicamentos").get()
+                .addOnSuccessListener(query -> {
+                    int nuevos = 0;
+                    for (DocumentSnapshot doc : query.getDocuments()) {
+                        if (!doc.contains("nombre") || !doc.contains("descripcion")) continue;
+                        String nombre = doc.getString("nombre");
+                        String descripcion = doc.getString("descripcion");
+                        if (nombre == null || descripcion == null) continue;
 
-                Cursor cursor = db.query("medicamento", new String[]{"nombre"}, "nombre = ?", new String[]{nombre}, null, null, null);
-                boolean existe = cursor.moveToFirst();
-                cursor.close();
+                        Cursor cursor = db.query("medicamento", new String[]{"nombre"}, "nombre = ?", new String[]{nombre}, null, null, null);
+                        boolean existe = cursor.moveToFirst();
+                        cursor.close();
 
-                if (!existe) {
-                    ContentValues values = new ContentValues();
-                    values.put("nombre", nombre);
-                    values.put("descripcion", descripcion);
-                    db.insert("medicamento", null, values);
-                }
-            }
-        });
+                        if (!existe) {
+                            ContentValues values = new ContentValues();
+                            values.put("nombre", nombre);
+                            values.put("descripcion", descripcion);
+                            db.insert("medicamento", null, values);
+                            nuevos++;
+                        }
+                    }
+                    Toast.makeText(activity, "Medicamentos sincronizados: " + nuevos, Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> Toast.makeText(activity, "Error al sincronizar medicamentos", Toast.LENGTH_SHORT).show());
 
         // Principios activos
-        firestore.collection("principios_activos").get().addOnSuccessListener(query -> {
-            for (DocumentSnapshot doc : query.getDocuments()) {
-                String nombre = doc.getString("nombre");
+        firestore.collection("principios_activos").get()
+                .addOnSuccessListener(query -> {
+                    int nuevos = 0;
+                    for (DocumentSnapshot doc : query.getDocuments()) {
+                        if (!doc.contains("nombre")) continue;
+                        String nombre = doc.getString("nombre");
+                        if (nombre == null) continue;
 
-                Cursor cursor = db.query("principio_activo", new String[]{"nombre"}, "nombre = ?", new String[]{nombre}, null, null, null);
-                boolean existe = cursor.moveToFirst();
-                cursor.close();
+                        Cursor cursor = db.query("principio_activo", new String[]{"nombre"}, "nombre = ?", new String[]{nombre}, null, null, null);
+                        boolean existe = cursor.moveToFirst();
+                        cursor.close();
 
-                if (!existe) {
-                    ContentValues values = new ContentValues();
-                    values.put("nombre", nombre);
-                    db.insert("principio_activo", null, values);
-                }
-            }
-        });
+                        if (!existe) {
+                            ContentValues values = new ContentValues();
+                            values.put("nombre", nombre);
+                            db.insert("principio_activo", null, values);
+                            nuevos++;
+                        }
+                    }
+                    Toast.makeText(activity, "Principios activos sincronizados: " + nuevos, Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> Toast.makeText(activity, "Error al sincronizar principios activos", Toast.LENGTH_SHORT).show());
     }
 
     // Liberar recursos
