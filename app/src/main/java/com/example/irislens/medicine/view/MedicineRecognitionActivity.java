@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.WindowManager;
+import android.view.Surface;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -97,20 +98,18 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
 
             @Override
             public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-                // Imagen original de la camara de OpenCV
                 Mat originalImage = inputFrame.rgba();
 
                 if (presenter != null) {
-                    // Rotar 90 grados (ya que por defecto la camara de OpenCV viene rotada)
-//                    // Solo rotar si la imagen está en landscape y el dispositivo está en portrait
-//                    if (originalImage.width() > originalImage.height()) {
-//                        originalImage = presenter.rotateImage(originalImage);
-//                    }
-                    originalImage = presenter.rotateImage(originalImage);
+                    int rotation = getWindowManager().getDefaultDisplay().getRotation();
+
+                    // Solo rota si el dispositivo está en orientación horizontal
+                    if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
+                        originalImage = presenter.rotateImage(originalImage); // Rota 90 grados
+                    }
 
                     presenter.onFrame(originalImage);
                 }
-                // Devolver la imagen original para que se muestre en la vista de la camara
                 return originalImage;
             }
         });
@@ -124,6 +123,17 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         super.onPause();
         if (cameraBridgeViewBase != null) {
             cameraBridgeViewBase.disableView();
+        }
+    }
+
+    /**
+     * Reactiva la camara al volver a la funcionalidad
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (cameraBridgeViewBase != null) {
+            cameraBridgeViewBase.enableView();
         }
     }
 

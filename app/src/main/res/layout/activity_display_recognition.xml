@@ -8,7 +8,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:text="Reconocimiento de displays (próximamente)"
+        android:text="Reconocimiento de displays (próximamente). \n\nDeslizar hacia izquierda o derecha para cambiar de funcionalidad."
         android:textSize="24sp"
         android:textColor="#FAFAFA"
         android:importantForAccessibility="yes"
