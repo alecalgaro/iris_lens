@@ -35,6 +35,8 @@
             android:screenOrientation="portrait"/>
         <activity android:name=".money.view.MoneyRecognitionActivity" />
         <activity android:name=".display.view.DisplayRecognitionActivity" />
+        <activity android:name=".common.WelcomeActivity"
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"/>
 
     </application>
 

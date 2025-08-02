@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@android:color/black"
+    android:padding="32dp">
+
+    <ImageView
+        android:id="@+id/ivLogo"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:src="@drawable/logo_irislens_redondeado"
+        android:contentDescription="Logo de Iris Lens"
+        android:layout_marginBottom="24dp"
+        android:scaleType="centerCrop" />
+
+    <TextView
+        android:id="@+id/tvWelcome"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Iris Lens te da la bienvenida. \n\nDesliza hacia la izquierda o derecha para cambiar de funcionalidad. \n\nUsa doble toque para detener la voz."
+        android:textColor="@android:color/white"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:lineSpacingExtra="8dp"
+        android:textAlignment="center"
+        android:gravity="center"
+        android:contentDescription="Iris Lens te da la bienvenida. Desliza hacia la izquierda o derecha para cambiar de funcionalidad. Usa doble toque para detener la voz." />
+</LinearLayout>

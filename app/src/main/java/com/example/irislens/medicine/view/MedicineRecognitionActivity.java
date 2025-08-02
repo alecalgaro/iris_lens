@@ -2,6 +2,9 @@ package com.example.irislens.medicine.view;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import com.example.irislens.common.TextToSpeechManager;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.WindowManager;
@@ -44,6 +47,8 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
     // Encapsula la logica de presentacion para el reconocimiento de medicamentos
     private MedicineRecognitionPresenter presenter;
 
+    //private TextToSpeechManager ttsManager;
+
     /**
      * Configura la camara, permisos y procesamiento de imagen
      *
@@ -57,7 +62,7 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
-        tvResult.setText("Reconocer medicamento");
+        tvResult.setText("Reconocimiento de medicamentos. Apunte la cámara hacia el objeto que desea reconocer.");
 
         // Inicializar PermissionManager y solicitar permiso de camara
         permissionManager = new PermissionManager();
@@ -65,6 +70,15 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
 
         // Inicializar Presenter para funcionalidad de reconocimiento de medicamentos
         presenter = new MedicineRecognitionPresenter(this, tvResult);
+
+        //ttsManager = new TextToSpeechManager(this);
+
+        /*
+        new Handler().postDelayed(() -> {
+            ttsManager.speak("Reconocimiento de medicamentos. Apunte la cámara hacia el objeto que desea reconocer.");
+        }, 500);
+        */
+
 
         // Crear los registros de medicamentos y principios activos en la base de datos local
         MedicineDbHelper dbHelper = new MedicineDbHelper(this);
@@ -142,13 +156,19 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
      */
     @Override
     protected void onDestroy() {
-        // Liberar los recursos de la vista de camara de OpenCV
         super.onDestroy();
         if (cameraBridgeViewBase != null) {
             cameraBridgeViewBase.disableView();
         }
         presenter.onDestroy();
+
+        /*
+        if (ttsManager != null) {
+            ttsManager.shutdown();
+        }
+        */
     }
+
 
     /**
      * Heredada, cuando detecta doble tap, pausa el audio
