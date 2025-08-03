@@ -18,9 +18,9 @@ public class WelcomeActivity extends BaseSwipeActivity {
         ttsManager = new TextToSpeechManager(this);
         // Espera breve para asegurar que TTS este listo
         new Handler().postDelayed(() -> {
-            ttsManager.speak("Iris Lens te da la bienvenida. " +
-                    "Desliza hacia la izquierda o derecha para cambiar de funcionalidad. " +
-                    "Usa doble toque para detener la voz.");
+            ttsManager.speak("Iris Lens le da la bienvenida. " +
+                    "Deslice el dedo hacia la izquierda o derecha para cambiar de funcionalidad. " +
+                    "Use doble toque para detener la voz.");
         }, 500);
     }
 
