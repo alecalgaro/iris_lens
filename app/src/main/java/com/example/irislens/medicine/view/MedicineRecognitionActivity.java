@@ -117,9 +117,14 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
                 if (presenter != null) {
                     int rotation = getWindowManager().getDefaultDisplay().getRotation();
 
-                    // Solo rota si el dispositivo esta en orientacion horizontal
-                    if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
-                        originalImage = presenter.rotateImage(originalImage); // Rota 90 grados
+                    switch (rotation) {
+                        case Surface.ROTATION_0:
+                            // Portrait, rota 90 grados a la derecha
+                            originalImage = presenter.rotateImage(originalImage, -90);
+                            break;
+                        default:
+                            // No hacer nada
+                            break;
                     }
 
                     presenter.onFrame(originalImage);

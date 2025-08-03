@@ -22,7 +22,7 @@ public class WelcomeActivity extends BaseSwipeActivity {
             ttsManager.speak("Iris Lens le da la bienvenida. " +
                     "Deslice el dedo hacia la izquierda o derecha para cambiar de funcionalidad. " +
                     "Use doble toque para detener la voz.");
-        }, 500);
+        }, 1000);
     }
 
     @Override
