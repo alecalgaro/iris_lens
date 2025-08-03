@@ -5,11 +5,13 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
+import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.irislens.R;
 import com.example.irislens.medicine.model.DatabaseManager;
 import com.example.irislens.common.ImageProcessor;
 import com.example.irislens.medicine.model.ReadImageText;
@@ -65,6 +67,9 @@ public class MedicineRecognitionPresenter {
         frameCount++;
         if (frameCount == 10) {
             if (!ttsManager.isSpeaking()) {
+                // Reproducir un sonido para indicar al usuario que se ha capturado un frame
+                MediaPlayer mediaPlayer = MediaPlayer.create(activity, R.raw.captura);
+                mediaPlayer.start();
                 // Preprocesar la imagen para mejorar la visibilidad del texto
                 Pair<Mat, Double> processedImageAndBrightness = ImageProcessor.preprocessImage(image);
                 Mat mRgba = processedImageAndBrightness.first;
@@ -195,7 +200,8 @@ public class MedicineRecognitionPresenter {
                             nuevos++;
                         }
                     }
-                    Toast.makeText(activity, "Medicamentos sincronizados: " + nuevos, Toast.LENGTH_SHORT).show();
+                    if(nuevos > 0)
+                        Toast.makeText(activity, "Nuevos medicamentos: " + nuevos, Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> Toast.makeText(activity, "Error al sincronizar medicamentos", Toast.LENGTH_SHORT).show());
 
@@ -219,7 +225,8 @@ public class MedicineRecognitionPresenter {
                             nuevos++;
                         }
                     }
-                    Toast.makeText(activity, "Principios activos sincronizados: " + nuevos, Toast.LENGTH_SHORT).show();
+                    if(nuevos > 0)
+                        Toast.makeText(activity, "Nuevos principios activos: " + nuevos, Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> Toast.makeText(activity, "Error al sincronizar principios activos", Toast.LENGTH_SHORT).show());
     }

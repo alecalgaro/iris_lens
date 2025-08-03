@@ -1,35 +1,27 @@
 package com.example.irislens.common;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.speech.tts.TextToSpeech;
 
 import com.example.irislens.R;
 
-public class WelcomeActivity extends Activity {
+public class WelcomeActivity extends BaseSwipeActivity {
 
     private TextToSpeechManager ttsManager;
-    private boolean alreadyNavigated = false; // Para evitar que se llame dos veces
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_welcome);
+        currentFunctionalityIndex = Functionalities.WELCOME; // indice para el swipe
 
-        //ttsManager = new TextToSpeechManager(this);
-
-        //ttsManager.speak("Iris Lens te da la bienvenida. Desliza hacia la izquierda o derecha para cambiar de funcionalidad. Usa doble toque para detener la voz.");
-
+        ttsManager = new TextToSpeechManager(this);
+        // Espera breve para asegurar que TTS este listo
         new Handler().postDelayed(() -> {
-            if (!alreadyNavigated) {
-                alreadyNavigated = true;
-                //ttsManager.shutdown();
-                Functionalities.launch(WelcomeActivity.this, Functionalities.MEDICINE);
-                finish();
-            }
-        }, 4000);
+            ttsManager.speak("Iris Lens te da la bienvenida. " +
+                    "Desliza hacia la izquierda o derecha para cambiar de funcionalidad. " +
+                    "Usa doble toque para detener la voz.");
+        }, 500);
     }
 
     @Override

@@ -72,7 +72,6 @@ public class Tools {
         if (matches.size() >= 2) {
             Log.e("Match", "Match: " + matches.toString().trim());
             Log.e("Match", "Se detectaron " + matches.size() + " medicamentos. Debe identificarse uno de forma unívoca.");
-            // Puedes también registrar este mensaje en un log o mostrarlo en interfaz si es Android
             multiplesMedicamentos = true;
         }
         // Si no hay coincidencias en medicamentos, buscar en principios activos comparando con n-gramas

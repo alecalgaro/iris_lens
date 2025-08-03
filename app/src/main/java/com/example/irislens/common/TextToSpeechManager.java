@@ -29,10 +29,10 @@ public class TextToSpeechManager {
                             String textToSpeak = "Debe conceder el permiso para acceder a la cámara";
                             tts.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, null);
                         }
-                        else {
-                            String textToSpeak = "Apunte la cámara hacia el objeto que desea reconocer";
-                            tts.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, null);
-                        }
+//                        else {
+//                            String textToSpeak = "Apunte la cámara hacia el objeto que desea reconocer";
+//                            tts.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, null);
+//                        }
                     }
                 } else {
                     Toast.makeText(context, "Debe activar un motor de Text-to-Speech para continuar", Toast.LENGTH_LONG).show();

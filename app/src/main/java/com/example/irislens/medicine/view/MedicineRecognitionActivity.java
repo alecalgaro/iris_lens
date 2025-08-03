@@ -3,7 +3,6 @@ package com.example.irislens.medicine.view;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import com.example.irislens.common.TextToSpeechManager;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -47,7 +46,8 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
     // Encapsula la logica de presentacion para el reconocimiento de medicamentos
     private MedicineRecognitionPresenter presenter;
 
-    //private TextToSpeechManager ttsManager;
+    // Encargado de sintetizar voz a partir de texto
+    private TextToSpeechManager ttsManager;
 
     /**
      * Configura la camara, permisos y procesamiento de imagen
@@ -56,9 +56,10 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        currentFunctionalityIndex = Functionalities.MEDICINE; // indice para esta funcionalidad
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_medicine_recognition);
+
+        currentFunctionalityIndex = Functionalities.MEDICINE; // indice para el swipe de esta funcionalidad
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
@@ -71,15 +72,6 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         // Inicializar Presenter para funcionalidad de reconocimiento de medicamentos
         presenter = new MedicineRecognitionPresenter(this, tvResult);
 
-        //ttsManager = new TextToSpeechManager(this);
-
-        /*
-        new Handler().postDelayed(() -> {
-            ttsManager.speak("Reconocimiento de medicamentos. Apunte la cámara hacia el objeto que desea reconocer.");
-        }, 500);
-        */
-
-
         // Crear los registros de medicamentos y principios activos en la base de datos local
         MedicineDbHelper dbHelper = new MedicineDbHelper(this);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
@@ -87,6 +79,14 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
             Toast.makeText(this, "Actualizando base de datos...", Toast.LENGTH_SHORT).show();
             presenter.sincronizarConFirestore(db);
         }
+
+        // Mensaje de voz sobre la funcionalidad
+        ttsManager = new TextToSpeechManager(this);
+        // Espera breve para asegurar que TTS este listo
+        new Handler().postDelayed(() -> {
+            ttsManager.speak("Reconocimiento de medicamentos. " +
+                    "Apunte la cámara hacia el objeto que desea reconocer.");
+        }, 500);
 
         // Mantener la pantalla encendida mientras esta actividad esta en primer plano
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -162,11 +162,9 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         }
         presenter.onDestroy();
 
-        /*
         if (ttsManager != null) {
             ttsManager.shutdown();
         }
-        */
     }
 
 

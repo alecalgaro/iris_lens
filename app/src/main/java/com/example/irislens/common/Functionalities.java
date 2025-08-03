@@ -18,9 +18,10 @@ import com.example.irislens.display.view.DisplayRecognitionActivity;
 public class Functionalities {
 
     // Indice para la funcionalidad de reconocimiento de medicamentos, billetes y displays
-    public static final int MEDICINE = 0;
-    public static final int MONEY = 1;
-    public static final int DISPLAY = 2;
+    public static final int WELCOME = 0;
+    public static final int MEDICINE = 1;
+    public static final int MONEY = 2;
+    public static final int DISPLAY = 3;
 
     // Tag para log
     private static final String TAG = "Functionalities";
@@ -34,6 +35,7 @@ public class Functionalities {
 
     // Lista de clases correspondientes a las funcionalidades
     public static final List<Class<?>> FUNCTIONALITIES = Arrays.asList(
+            WelcomeActivity.class,
             MedicineRecognitionActivity.class,
             MoneyRecognitionActivity.class,
             DisplayRecognitionActivity.class
