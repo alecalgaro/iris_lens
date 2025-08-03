@@ -135,7 +135,11 @@ public class MedicineRecognitionPresenter {
                 } else {
                     StringBuilder sb = new StringBuilder();
                     for (Pair<String, String> match : matches) {
-                        sb.append(match.second).append("\n");
+                        sb.append(match.first);
+                        if (!match.second.isEmpty()) {
+                            sb.append(": ").append(match.second);
+                        }
+                        sb.append("\n");
                     }
                     ttsManager.speak(sb.toString());
                     tvResult.setText(sb.toString());

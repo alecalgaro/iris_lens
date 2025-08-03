@@ -2,6 +2,7 @@ package com.example.irislens.common;
 
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.MotionEvent;
 
 import com.example.irislens.R;
 
@@ -22,6 +23,13 @@ public class WelcomeActivity extends BaseSwipeActivity {
                     "Deslice el dedo hacia la izquierda o derecha para cambiar de funcionalidad. " +
                     "Use doble toque para detener la voz.");
         }, 500);
+    }
+
+    @Override
+    protected void onDoubleTapDetected() {
+        if (ttsManager != null) {
+            ttsManager.stop();
+        }
     }
 
     @Override

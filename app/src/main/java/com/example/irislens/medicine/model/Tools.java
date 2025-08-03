@@ -99,7 +99,7 @@ public class Tools {
                 for (String ngram : ngrams) {
                     double similarity = 1.0 - ((double) levenshteinDistance.apply(ngram, nombreDroga) / Math.max(ngram.length(), nombreDroga.length()));
                     if (similarity >= SIMILARITY_THRESHOLD) {
-                        Pair<String, String> match = new Pair<>(cursor.getString(cursor.getColumnIndexOrThrow("nombre")), cursor.getString(cursor.getColumnIndexOrThrow("nombre")));
+                        Pair<String, String> match = new Pair<>(cursor.getString(cursor.getColumnIndexOrThrow("nombre")), "");
                         if (!matches.contains(match)) {
                             matches.add(match);
                         }

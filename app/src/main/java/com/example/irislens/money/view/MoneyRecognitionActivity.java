@@ -22,16 +22,24 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        currentFunctionalityIndex = Functionalities.MONEY;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_money_recognition);
 
-        /*
+        currentFunctionalityIndex = Functionalities.MONEY; // indice para el swipe de esta funcionalidad
+
+        // Mensaje de voz sobre la funcionalidad
         ttsManager = new TextToSpeechManager(this);
+        // Espera breve para asegurar que TTS este listo
         new Handler().postDelayed(() -> {
-            ttsManager.speak("Reconocimiento de billetes (próximamamente).");
+            ttsManager.speak("Reconocimiento de billetes (próximamente)");
         }, 500);
-        */
+    }
+
+    @Override
+    protected void onDoubleTapDetected() {
+        if (ttsManager != null) {
+            ttsManager.stop();
+        }
     }
 
     @Override
@@ -41,5 +49,4 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
             ttsManager.shutdown();
         }
     }
-
 }

@@ -14,6 +14,7 @@ import com.example.irislens.common.TextToSpeechManager;
  */
 public class DisplayRecognitionActivity extends BaseSwipeActivity {
 
+    // Encargado de sintetizar voz a partir de texto
     private TextToSpeechManager ttsManager;
 
     /**
@@ -23,16 +24,23 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        currentFunctionalityIndex = Functionalities.DISPLAY;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display_recognition);
+        currentFunctionalityIndex = Functionalities.DISPLAY; // indice para el swipe de esta funcionalidad
 
-        /*
+        // Mensaje de voz sobre la funcionalidad
         ttsManager = new TextToSpeechManager(this);
+        // Espera breve para asegurar que TTS este listo
         new Handler().postDelayed(() -> {
-            ttsManager.speak("Reconocimiento de displays (próximamente).");
+            ttsManager.speak("Reconocimiento de displays (próximamente)");
         }, 500);
-         */
+    }
+
+    @Override
+    protected void onDoubleTapDetected() {
+        if (ttsManager != null) {
+            ttsManager.stop();
+        }
     }
 
     @Override
@@ -42,6 +50,4 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
             ttsManager.shutdown();
         }
     }
-
-
 }
