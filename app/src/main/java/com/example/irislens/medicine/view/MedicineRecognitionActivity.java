@@ -81,12 +81,10 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         }
 
         // Mensaje de voz sobre la funcionalidad
-        ttsManager = new TextToSpeechManager(this);
-        // Espera breve para asegurar que TTS este listo
-        new Handler().postDelayed(() -> {
+        ttsManager = new TextToSpeechManager(this, () -> {
             ttsManager.speak("Reconocimiento de medicamentos. " +
                     "Apunte la cámara hacia el objeto que desea reconocer.");
-        }, 500);
+        });
 
         // Mantener la pantalla encendida mientras esta actividad esta en primer plano
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

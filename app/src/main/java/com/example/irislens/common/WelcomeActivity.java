@@ -16,13 +16,11 @@ public class WelcomeActivity extends BaseSwipeActivity {
         setContentView(R.layout.activity_welcome);
         currentFunctionalityIndex = Functionalities.WELCOME; // indice para el swipe
 
-        ttsManager = new TextToSpeechManager(this);
-        // Espera breve para asegurar que TTS este listo
-        new Handler().postDelayed(() -> {
+        ttsManager = new TextToSpeechManager(this, () -> {
             ttsManager.speak("Iris Lens le da la bienvenida. " +
                     "Deslice el dedo hacia la izquierda o derecha para cambiar de funcionalidad. " +
                     "Use doble toque para detener la voz.");
-        }, 1000);
+        });
     }
 
     @Override

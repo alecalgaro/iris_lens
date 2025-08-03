@@ -29,11 +29,9 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
         currentFunctionalityIndex = Functionalities.DISPLAY; // indice para el swipe de esta funcionalidad
 
         // Mensaje de voz sobre la funcionalidad
-        ttsManager = new TextToSpeechManager(this);
-        // Espera breve para asegurar que TTS este listo
-        new Handler().postDelayed(() -> {
-            ttsManager.speak("Reconocimiento de displays (próximamente)");
-        }, 500);
+        ttsManager = new TextToSpeechManager(this, () -> {
+            ttsManager.speak("Reconocimiento de displays. Disponible próximamente.");
+        });
     }
 
     @Override

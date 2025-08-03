@@ -28,11 +28,9 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
         currentFunctionalityIndex = Functionalities.MONEY; // indice para el swipe de esta funcionalidad
 
         // Mensaje de voz sobre la funcionalidad
-        ttsManager = new TextToSpeechManager(this);
-        // Espera breve para asegurar que TTS este listo
-        new Handler().postDelayed(() -> {
-            ttsManager.speak("Reconocimiento de billetes (próximamente)");
-        }, 500);
+        ttsManager = new TextToSpeechManager(this, () -> {
+            ttsManager.speak("Reconocimiento de billetes. Disponible próximamente.");
+        });
     }
 
     @Override
