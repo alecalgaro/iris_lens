@@ -179,6 +179,9 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         if (presenter != null) {
             presenter.onDoubleTap();
         }
+        if (ttsManager != null) {
+            ttsManager.stop();
+        }
     }
 
     @Override
