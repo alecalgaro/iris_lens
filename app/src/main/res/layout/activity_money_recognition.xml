@@ -1,17 +1,35 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root_container"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
 
-    <TextView
-        android:id="@+id/tvResult"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="Reconocimiento de billetes (disponible próximamente)."
-        android:textSize="24sp"
-        android:textColor="#FAFAFA"
-        android:importantForAccessibility="yes"
-        android:focusable="true"
-        android:contentDescription="Reconocimiento de billetes (disponible próximamente)." />
+        android:layout_height="match_parent">
+
+        <org.opencv.android.JavaCameraView
+            android:id="@+id/camera_view"
+            android:layout_width="match_parent"
+            android:layout_height="500dp" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/camera_view">
+
+            <TextView
+                android:id="@+id/tvResult"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="22sp"
+                android:layout_marginHorizontal="10dp"
+                android:layout_marginBottom="10dp"
+                android:textAlignment="center"
+                android:text=""
+                android:textColor="#FAFAFA"
+                android:importantForAccessibility="yes"
+                android:focusable="true" />
+        </ScrollView>
+    </RelativeLayout>
 </FrameLayout>
