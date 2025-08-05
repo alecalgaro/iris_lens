@@ -57,8 +57,8 @@ public class MedicineRecognitionPresenter {
     }
 
     // Rotar la imagen 90 grados (por defecto la camara de OpenCV viene rotada)
-    public Mat rotateImage(Mat image, double angle) {
-        return ImageProcessor.rotateImage(image, angle);
+    public Mat rotateImage(Mat image) {
+        return ImageProcessor.rotateImage(image);
     }
 
     // Procesar un frame de la camara

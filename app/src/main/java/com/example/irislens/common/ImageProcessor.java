@@ -19,14 +19,15 @@ public class ImageProcessor {
      * de la camara de OpenCV que se muestra en la pantalla.
      *
      * @param src La imagen de origen (camara de OpenCV)
-     * @param angle El angulo de rotacion en grados
      * @return La imagen rotada (camera de OpenCV)
      */
-    public static Mat rotateImage(Mat src, double angle) {
+    public static Mat rotateImage(Mat src) {
         Mat dst = new Mat();
         // Obtener el centro de la imagen
         Point center = new Point(src.cols() / 2, src.rows() / 2);
-        // Obtener la matriz de rotacion
+        // Definir el ángulo de rotación (90 grados)
+        double angle = -90;
+        // Obtener la matriz de rotación
         Mat rotationMatrix = Imgproc.getRotationMatrix2D(center, angle, 1.0);
         // Rotar la imagen
         Imgproc.warpAffine(src, dst, rotationMatrix, new Size(src.cols(), src.rows()));

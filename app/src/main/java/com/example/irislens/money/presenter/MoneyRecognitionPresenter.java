@@ -33,8 +33,8 @@ public class MoneyRecognitionPresenter {
         this.executor = Executors.newSingleThreadExecutor();
     }
 
-    public Mat rotateImage(Mat image, double angle) {
-        return ImageProcessor.rotateImage(image, angle);
+    public Mat rotateImage(Mat image) {
+        return ImageProcessor.rotateImage(image);
     }
 
     public void onFrame(Mat image) {

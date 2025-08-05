@@ -13,6 +13,7 @@ import androidx.annotation.NonNull;
 import com.example.irislens.R;
 import com.example.irislens.common.BaseSwipeActivity;
 import com.example.irislens.common.Functionalities;
+import com.example.irislens.common.ImageProcessor;
 import com.example.irislens.common.PermissionManager;
 import com.example.irislens.common.TextToSpeechManager;
 import com.example.irislens.money.presenter.MoneyRecognitionPresenter;
@@ -79,12 +80,9 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
             @Override
             public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
                 Mat originalImage = inputFrame.rgba();
-
-                int rotation = getWindowManager().getDefaultDisplay().getRotation();
-                if (rotation == Surface.ROTATION_0) {
-                    originalImage = presenter.rotateImage(originalImage, -90);
-                }
-
+                // Rotar 90 grados (ya que por defecto la camara de OpenCV viene rotada)
+                originalImage = ImageProcessor.rotateImage(originalImage);
+                // Pasar la imagen al presentador para el reconocimiento
                 presenter.onFrame(originalImage);
                 return originalImage;
             }

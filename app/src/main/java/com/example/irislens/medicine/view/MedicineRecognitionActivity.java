@@ -9,9 +9,7 @@ import com.example.irislens.common.TextToSpeechManager;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.WindowManager;
-import android.view.Surface;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.Collections;
 import java.util.List;
@@ -112,6 +110,7 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
                 mRgba.release();
             }
 
+            @Override
             public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
                 Mat originalImage = inputFrame.rgba();
                 // Rotar 90 grados (ya que por defecto la camara de OpenCV viene rotada)
