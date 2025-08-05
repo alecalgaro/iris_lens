@@ -3,6 +3,8 @@ package com.example.irislens.medicine.view;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
+
+import com.example.irislens.common.ImageProcessor;
 import com.example.irislens.common.TextToSpeechManager;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -76,7 +78,7 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         MedicineDbHelper dbHelper = new MedicineDbHelper(this);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         if(db != null) {
-            Toast.makeText(this, "Actualizando base de datos...", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, "Actualizando base de datos...", Toast.LENGTH_SHORT).show();
             presenter.sincronizarConFirestore(db);
         }
 
@@ -110,20 +112,12 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
                 mRgba.release();
             }
 
-            @Override
             public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
                 Mat originalImage = inputFrame.rgba();
-
-                if (presenter != null) {
-                    int rotation = getWindowManager().getDefaultDisplay().getRotation();
-
-                    // Solo rota si el dispositivo esta en orientacion horizontal
-                    if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
-                        originalImage = presenter.rotateImage(originalImage); // Rota 90 grados
-                    }
-
-                    presenter.onFrame(originalImage);
-                }
+                // Rotar 90 grados (ya que por defecto la camara de OpenCV viene rotada)
+                originalImage = ImageProcessor.rotateImage(originalImage);
+                // Pasar la imagen al presentador para el reconocimiento
+                presenter.onFrame(originalImage);
                 return originalImage;
             }
         });

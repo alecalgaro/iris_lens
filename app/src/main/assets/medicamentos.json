@@ -1,11 +1,11 @@
 [
   {
     "nombre": "Decidex Compuesto",
-    "descripcion": "Decidex Compuesto"
+    "descripcion": "Contiene Clorfenamina, Pseudoefedrina y Paracetamol. Se utiliza en tratamiento sintomático del cuadro gripal que se acompañe de fiebre o dolor y congestión nasal, sinusal u ocular."
   },
   {
     "nombre": "Lotrial",
-    "descripcion": "Lotrial"
+    "descripcion": "Contiene Enalapril. Indicado en todos los grados de la hipertensión arterial esencial, en la\nhipertensión renovascular y en la insuficiencia cardíaca congestiva"
   },
   {
     "nombre": "Aspirinetas",
@@ -13,11 +13,11 @@
   },
   {
     "nombre": "Qura Plus",
-    "descripcion": "Qura Plus"
+    "descripcion": ""
   },
   {
     "nombre": "Paracetamol Grip",
-    "descripcion": "Paracetamol Grip"
+    "descripcion": "Contiene Paracetamol, Bromhexina, Pseudoefedrina y Loratadina."
   },
   {
     "nombre": "Neuryl",
@@ -189,7 +189,7 @@
   },
   {
     "nombre": "Ernex",
-    "descripcion": "Ernex"
+    "descripcion": "Contiene Bencidamina. Indicado para el tratamiento de inflamaciones de la garganta y de la boca."
   },
   {
     "nombre": "Corteroid",
