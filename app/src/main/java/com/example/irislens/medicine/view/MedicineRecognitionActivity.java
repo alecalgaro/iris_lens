@@ -1,6 +1,8 @@
 package com.example.irislens.medicine.view;
 
+import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
 import com.example.irislens.common.TextToSpeechManager;
@@ -22,6 +24,7 @@ import com.example.irislens.R;
 import com.example.irislens.medicine.model.MedicineDbHelper;
 import com.example.irislens.medicine.presenter.MedicineRecognitionPresenter;
 import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.android.OpenCVLoader;
@@ -48,6 +51,8 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
 
     // Encargado de sintetizar voz a partir de texto
     private TextToSpeechManager ttsManager;
+    private int rotationDegrees = 0;
+    private boolean needToRotate = false;
 
     /**
      * Configura la camara, permisos y procesamiento de imagen
@@ -103,6 +108,18 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
             @Override
             public void onCameraViewStarted(int width, int height) {
                 mRgba = new Mat(height, width, CvType.CV_8UC4);
+
+                int cameraId = 0; // 0: camara trasera
+                Camera.CameraInfo info = new Camera.CameraInfo();
+                Camera.getCameraInfo(cameraId, info);
+
+                int cameraOrientation = info.orientation;
+                boolean isFrontFacing = (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
+
+                int deviceRotation = getDeviceRotation();
+
+                rotationDegrees = calculateRotation(isFrontFacing, cameraOrientation, deviceRotation);
+                needToRotate = (rotationDegrees != 0);
             }
 
             @Override
@@ -114,16 +131,17 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
             public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
                 Mat originalImage = inputFrame.rgba();
 
-                if (presenter != null) {
-                    int rotation = getWindowManager().getDefaultDisplay().getRotation();
-
-                    // Solo rota si el dispositivo esta en orientacion horizontal
-                    if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
-                        originalImage = presenter.rotateImage(originalImage); // Rota 90 grados
+                // Aplicar rotacion de la camara solo si es necesario
+                if (needToRotate) {
+                    Mat rotated = new Mat();
+                    int code = getOpenCVRotationCode(rotationDegrees);
+                    if (code != -1) {
+                        Core.rotate(originalImage, rotated, code);
+                        originalImage = rotated;
                     }
-
-                    presenter.onFrame(originalImage);
                 }
+
+                presenter.onFrame(originalImage);
                 return originalImage;
             }
         });
@@ -199,4 +217,46 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
     public boolean dispatchTouchEvent(MotionEvent ev) {
         return super.dispatchTouchEvent(ev);
     }
+
+    private int getDeviceRotation() {
+        int rotation = ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
+                .getDefaultDisplay().getRotation();
+        switch (rotation) {
+            case Surface.ROTATION_0:
+                return 0;
+            case Surface.ROTATION_90:
+                return 90;
+            case Surface.ROTATION_180:
+                return 180;
+            case Surface.ROTATION_270:
+                return 270;
+            default:
+                return 0;
+        }
+    }
+
+    private int calculateRotation(boolean isFrontFacing, int cameraOrientation, int deviceRotation) {
+        int result;
+        if (isFrontFacing) {
+            result = (cameraOrientation + deviceRotation) % 360;
+            result = (360 - result) % 360; // Compensar espejo
+        } else {
+            result = (cameraOrientation - deviceRotation + 360) % 360;
+        }
+        return result;
+    }
+
+    private int getOpenCVRotationCode(int degrees) {
+        switch (degrees) {
+            case 90:
+                return Core.ROTATE_90_CLOCKWISE;
+            case 180:
+                return Core.ROTATE_180;
+            case 270:
+                return Core.ROTATE_90_COUNTERCLOCKWISE;
+            default:
+                return -1;
+        }
+    }
+
 }
