@@ -32,6 +32,10 @@ android {
 }
 
 dependencies {
+    // Roboflow
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.9.3'
+    implementation 'com.squareup.okio:okio:2.10.0'
     // OpenCV
     implementation project(':opencv')
     // Tesseract

@@ -14,21 +14,13 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class ImageProcessor {
-
-    /*
-     * Rota una imagen 90 grados para corregir la orientacion de la camara de OpenCV que por defecto viene rotada
+    /**
+     * Rota la imagen de la camara a un angulo especifico. Se utiliza para corregir la orientacion
+     * de la camara de OpenCV que se muestra en la pantalla.
      *
-     * @param image La imagen a rotar
-     * @return La imagen rotada
+     * @param src La imagen de origen (camara de OpenCV)
+     * @return La imagen rotada (camera de OpenCV)
      */
-    /*
-    public static Mat rotateImage(Mat image) {
-        // Rotar 90 grados (ya que por defecto la camara de OpenCV viene rotada)
-        Core.transpose(image, image);
-        Core.flip(image, image, 1);
-        return image;
-    }
-    */
     public static Mat rotateImage(Mat src) {
         Mat dst = new Mat();
         // Obtener el centro de la imagen
@@ -101,27 +93,12 @@ public class ImageProcessor {
         return new Pair<>(image, meanBrightness);
     }
 
-    /*
-    public static Mat rotateImage180(Mat image) {
-        // Rotar 180 grados
-        Core.flip(image, image, -1);
-        return image;
-    }
-    */
-    /*
-    public static Mat rotateImage180(Mat src) {
-        Mat dst = new Mat();
-        // Obtener el centro de la imagen
-        Point center = new Point(src.cols() / 2, src.rows() / 2);
-        // Definir el ángulo de rotación (90 grados)
-        double angle = 90;
-        // Obtener la matriz de rotación
-        Mat rotationMatrix = Imgproc.getRotationMatrix2D(center, angle, 1.0);
-        // Rotar la imagen
-        Imgproc.warpAffine(src, dst, rotationMatrix, new Size(src.cols(), src.rows()));
-        return dst;
-    }
-    */
+    /**
+     * Rota una imagen 180 grados. Se utiliza para rotar un frame capturado antes de procesarlo.
+     *
+     * @param image La imagen a rotar
+     * @return La imagen rotada
+     */
     public static Mat rotateImage180(Mat image) {
         Mat rotatedImage = new Mat();
         // Volcar la imagen horizontalmente
@@ -131,28 +108,12 @@ public class ImageProcessor {
         return rotatedImage;
     }
 
-    /*
-    public static Mat rotateImage90(Mat image) {
-        // Rotar 90 grados
-        Core.transpose(image, image);
-        Core.flip(image, image, 1);
-        return image;
-    }
-    */
-    /*
-    public static Mat rotateImage90(Mat src) {
-        Mat dst = new Mat();
-        // Obtener el centro de la imagen
-        Point center = new Point(src.cols() / 2, src.rows() / 2);
-        // Definir el ángulo de rotación (90 grados)
-        double angle = 90;
-        // Obtener la matriz de rotación
-        Mat rotationMatrix = Imgproc.getRotationMatrix2D(center, angle, 1.0);
-        // Rotar la imagen
-        Imgproc.warpAffine(src, dst, rotationMatrix, new Size(src.cols(), src.rows()));
-        return dst;
-    }
-    */
+    /**
+     * Rota una imagen 90 grados. Se utiliza para rotar un frame capturado antes de procesarlo.
+     *
+     * @param image La imagen a rotar
+     * @return La imagen rotada
+     */
     public static Mat rotateImage90(Mat image) {
         Mat rotatedImage = new Mat();
         // Transponer la imagen
@@ -162,28 +123,12 @@ public class ImageProcessor {
         return rotatedImage;
     }
 
-    /*
-    public static Mat rotateImage270(Mat image) {
-        // Rotar 270 grados
-        Core.transpose(image, image);
-        Core.flip(image, image, 0);
-        return image;
-    }
-    */
-    /*
-    public static Mat rotateImage270(Mat src) {
-        Mat dst = new Mat();
-        // Obtener el centro de la imagen
-        Point center = new Point(src.cols() / 2, src.rows() / 2);
-        // Definir el ángulo de rotación (90 grados)
-        double angle = 90;
-        // Obtener la matriz de rotación
-        Mat rotationMatrix = Imgproc.getRotationMatrix2D(center, angle, 1.0);
-        // Rotar la imagen
-        Imgproc.warpAffine(src, dst, rotationMatrix, new Size(src.cols(), src.rows()));
-        return dst;
-    }
-    */
+    /**
+     * Rota una imagen 270 grados. Se utiliza para rotar un frame capturado antes de procesarlo.
+     *
+     * @param image La imagen a rotar
+     * @return La imagen rotada
+     */
     public static Mat rotateImage270(Mat image) {
         Mat rotatedImage = new Mat();
         // Transponer la imagen
@@ -192,5 +137,4 @@ public class ImageProcessor {
         Core.flip(rotatedImage, rotatedImage, 0);
         return rotatedImage;
     }
-
 }

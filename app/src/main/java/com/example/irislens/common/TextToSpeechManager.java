@@ -12,34 +12,41 @@ import java.util.Locale;
 public class TextToSpeechManager {
 
     private TextToSpeech tts;
+    private boolean isReady = false;
 
-    // Constructor
-    public TextToSpeechManager(Context context) {
-        tts = new TextToSpeech(context, new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-                if (status == TextToSpeech.SUCCESS) {
-                    int result = tts.setLanguage(new Locale("es", "ES"));
-
-                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                        Log.e("TTS", "Idioma no soportado");
-                    }
-                    else {
-                        if (context.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                            String textToSpeak = "Debe conceder el permiso para acceder a la cámara";
-                            tts.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, null);
-                        }
-//                        else {
-//                            String textToSpeak = "Apunte la cámara hacia el objeto que desea reconocer";
-//                            tts.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, null);
-//                        }
-                    }
+    // Constructor original con callback
+    public TextToSpeechManager(Context context, Runnable onReady) {
+        tts = new TextToSpeech(context, status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                int result = tts.setLanguage(new Locale("es", "ES"));
+                isReady = result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED;
+                if (!isReady) {
+                    Log.e("TTS", "Idioma no soportado");
                 } else {
-                    Toast.makeText(context, "Debe activar un motor de Text-to-Speech para continuar", Toast.LENGTH_LONG).show();
-                    Log.e("TTS", "Inicialización fallida");
+                    if (context.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                        String textToSpeak = "Debe conceder el permiso para acceder a la cámara";
+                        tts.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, null);
+                    }
                 }
+                if (isReady && onReady != null) onReady.run();
+            } else {
+                Toast.makeText(context, "Debe activar un motor de Text-to-Speech para continuar", Toast.LENGTH_LONG).show();
+                Log.e("TTS", "Inicialización fallida");
             }
         });
+    }
+
+    // Constructor adicional para compatibilidad en caso de que no se necesite callback
+    public TextToSpeechManager(Context context) {
+        this(context, null);
+    }
+
+    /**
+     * Metodo para verificar si el TextToSpeech esta listo para usarse
+     * @return true si esta listo, false en caso contrario
+     */
+    public boolean isReady() {
+        return isReady;
     }
 
     /**
@@ -47,7 +54,9 @@ public class TextToSpeechManager {
      * @param text texto a reproducir
      */
     public void speak(String text) {
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
+        if (isReady) {
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
+        }
     }
 
     /**
