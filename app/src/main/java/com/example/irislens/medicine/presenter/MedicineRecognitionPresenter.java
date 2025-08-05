@@ -57,8 +57,8 @@ public class MedicineRecognitionPresenter {
     }
 
     // Rotar la imagen 90 grados (por defecto la camara de OpenCV viene rotada)
-    public Mat rotateImage(Mat image) {
-        return ImageProcessor.rotateImage(image);
+    public Mat rotateImage(Mat image, double angle) {
+        return ImageProcessor.rotateImage(image, angle);
     }
 
     // Procesar un frame de la camara
@@ -135,7 +135,11 @@ public class MedicineRecognitionPresenter {
                 } else {
                     StringBuilder sb = new StringBuilder();
                     for (Pair<String, String> match : matches) {
-                        sb.append(match.second).append("\n");
+                        sb.append(match.first);
+                        if (!match.second.isEmpty()) {
+                            sb.append(": ").append(match.second);
+                        }
+                        sb.append("\n");
                     }
                     ttsManager.speak(sb.toString());
                     tvResult.setText(sb.toString());

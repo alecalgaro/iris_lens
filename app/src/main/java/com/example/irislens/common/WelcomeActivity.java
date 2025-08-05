@@ -25,6 +25,13 @@ public class WelcomeActivity extends BaseSwipeActivity {
     }
 
     @Override
+    protected void onDoubleTapDetected() {
+        if (ttsManager != null) {
+            ttsManager.stop();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         if (ttsManager != null) {

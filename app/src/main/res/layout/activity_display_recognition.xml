@@ -8,10 +8,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:text="Reconocimiento de displays (próximamente)."
+        android:text="Reconocimiento de displays (disponible próximamente)."
         android:textSize="24sp"
         android:textColor="#FAFAFA"
         android:importantForAccessibility="yes"
         android:focusable="true"
-        android:contentDescription="Reconocimiento de displays (próximamente)." />
+        android:contentDescription="Reconocimiento de displays (disponible próximamente)." />
 </FrameLayout>
