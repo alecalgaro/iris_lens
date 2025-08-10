@@ -8,8 +8,10 @@ import com.example.irislens.common.ImageProcessor;
 import com.example.irislens.common.TextToSpeechManager;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.Surface;
 import android.view.WindowManager;
 import android.widget.TextView;
+import android.util.DisplayMetrics;
 
 import java.util.Collections;
 import java.util.List;
@@ -113,9 +115,20 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
             @Override
             public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
                 Mat originalImage = inputFrame.rgba();
-                // Rotar 90 grados (ya que por defecto la camara de OpenCV viene rotada)
-                originalImage = ImageProcessor.rotateImage(originalImage);
-                // Pasar la imagen al presentador para el reconocimiento
+
+                // Detectar dimensiones de la pantalla real
+                DisplayMetrics metrics = new DisplayMetrics();
+                getWindowManager().getDefaultDisplay().getMetrics(metrics);
+                boolean screenIsPortrait = metrics.heightPixels > metrics.widthPixels;
+
+                // Detectar orientación del frame de la cámara
+                boolean frameIsLandscape = originalImage.width() > originalImage.height();
+
+                // Solo rotar si el frame no coincide con la pantalla
+                if (screenIsPortrait && frameIsLandscape) {
+                    originalImage = ImageProcessor.rotateImage(originalImage);
+                }
+
                 presenter.onFrame(originalImage);
                 return originalImage;
             }
