@@ -1,6 +1,5 @@
 package com.example.irislens.medicine.view;
 
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
 
@@ -19,7 +18,6 @@ import com.example.irislens.common.BaseSwipeActivity;
 import com.example.irislens.common.Functionalities;
 import com.example.irislens.common.PermissionManager;
 import com.example.irislens.R;
-import com.example.irislens.medicine.model.MedicineDbHelper;
 import com.example.irislens.medicine.presenter.MedicineRecognitionPresenter;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.core.CvType;
@@ -72,13 +70,8 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         // Inicializar Presenter para funcionalidad de reconocimiento de medicamentos
         presenter = new MedicineRecognitionPresenter(this, tvResult);
 
-        // Crear los registros de medicamentos y principios activos en la base de datos local
-        MedicineDbHelper dbHelper = new MedicineDbHelper(this);
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        if(db != null) {
-            //Toast.makeText(this, "Actualizando base de datos...", Toast.LENGTH_SHORT).show();
-            presenter.sincronizarConFirestore(db);
-        }
+        // Inicializar la base de datos y sincronizarla con Firestore
+        presenter.initDatabase();
 
         // Mensaje de voz sobre la funcionalidad
         ttsManager = new TextToSpeechManager(this);
@@ -116,7 +109,7 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
                 // Rotar 90 grados (ya que por defecto la camara de OpenCV viene rotada)
                 originalImage = ImageProcessor.rotateImage(originalImage);
                 // Pasar la imagen al presentador para el reconocimiento
-                presenter.onFrame(originalImage);
+                presenter.processCameraFrame(originalImage);
                 return originalImage;
             }
         });

@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 public class Tools {
-    private static final double SIMILARITY_THRESHOLD = 0.8;
+    private static final double SIMILARITY_THRESHOLD = 0.85;
 
     /**
      * Limpia el texto de caracteres no deseados y palabras cortas
@@ -30,12 +30,10 @@ public class Tools {
         String[] words = cleanedText.split("\\s+");
 
         StringBuilder result = new StringBuilder();
+        // Agrega las palabras limpias
         for (String word : words) {
-            // Solo agrega palabras que tengan mas de 1 caracter
-            if (word.length() > 1) {
-                result.append(word);
-                result.append(" ");
-            }
+            result.append(word);
+            result.append(" ");
         }
 
         // Devuelve el texto limpio
@@ -44,11 +42,12 @@ public class Tools {
     }
 
     /**
-     * Busca similitudes entre una cadena de texto y las palabras en los JSON de medicamentos y principios activos
+     * Busca similitudes entre una cadena de texto y los medicamentos y principios activos de la
+     * base de datos SQLite.
      *
-     * @param stringTesseract La cadena de texto a comparar
-     * @param db La base de datos SQLite donde se almacenan los medicamentos y principios activos
-     * @return Una lista de pares donde cada par contiene el nombre del medicamento o principio activo y su descripcion
+     * @param stringTesseract Cadena de texto a comparar
+     * @param db Base de datos SQLite donde se almacenan los medicamentos y principios activos
+     * @return Lista de pares donde cada par contiene el nombre del medicamento o principio activo y su descripcion
      */
     public static Map<String, Object> searchSimilarity(String stringTesseract, SQLiteDatabase db) {
         Map<String, Object> result = new HashMap<>();
