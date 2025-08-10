@@ -1,6 +1,5 @@
 package com.example.irislens.medicine.view;
 
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
 
@@ -19,7 +18,6 @@ import com.example.irislens.common.BaseSwipeActivity;
 import com.example.irislens.common.Functionalities;
 import com.example.irislens.common.PermissionManager;
 import com.example.irislens.R;
-import com.example.irislens.medicine.model.MedicineDbHelper;
 import com.example.irislens.medicine.presenter.MedicineRecognitionPresenter;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.core.CvType;
