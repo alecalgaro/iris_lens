@@ -16,7 +16,7 @@ public final class MedicineContract {
         public static final String COLUMN_DESCRIPTION = "descripcion";
     }
 
-    public static class DrugEntry implements BaseColumns {
+    public static class ActiveIngredient implements BaseColumns {
         public static final String TABLE_NAME = "principio_activo";
         public static final String COLUMN_NAME = "nombre";
     }

@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -56,13 +57,31 @@ public class MedicineRecognitionPresenter {
         this.executor = Executors.newSingleThreadExecutor();
     }
 
-    // Rotar la imagen 90 grados (por defecto la camara de OpenCV viene rotada)
+    /**
+     * Inicializa la base de datos y sincroniza con Firestore.
+     */
+    public void initDatabase() {
+        SQLiteDatabase db = dbManager.getReadableDatabase();
+        if (db != null) {
+            Log.d("DB", "Base de datos creada y sincronizando con Firestore...");
+            syncWithFirestore(db);
+        }
+    }
+
+    /**
+     * Rotar la imagen 90 grados (por defecto la camara de OpenCV viene rotada)
+     * @param image Imagen a rotar
+     * @return Imagen rotada
+     */
     public Mat rotateImage(Mat image) {
         return ImageProcessor.rotateImage(image);
     }
 
-    // Procesar un frame de la camara
-    public void onFrame(Mat image) {
+    /**
+     * Procesar un frame de la camara
+     * @param image Imagen capturada por la camara
+     */
+    public void processCameraFrame(Mat image) {
         if (isProcessing) return;
         frameCount++;
         if (frameCount == 10) {
@@ -109,7 +128,10 @@ public class MedicineRecognitionPresenter {
         }
     }
 
-    // Procesar la imagen y buscar coincidencias
+    /**
+     * Procesar la imagen y buscar coincidencias
+     * @param image Imagen capturada
+     */
     private void processImageAndSearchMatches(Mat image) {
         Bitmap bitmap = ImageProcessor.convertToBitmap(image);
         isProcessing = true;
@@ -121,7 +143,9 @@ public class MedicineRecognitionPresenter {
         });
     }
 
-    // Manejar el resultado del procesamiento de la imagen
+    /**
+     * Manejar el resultado del procesamiento de la imagen
+     */
     private void handleImageProcessingResult(String result) {
         String finalResult = Tools.cleanupText(result);
         Map<String, Object> searchResult = Tools.searchSimilarity(finalResult, dbManager.getReadableDatabase());
@@ -163,7 +187,9 @@ public class MedicineRecognitionPresenter {
         });
     }
 
-    // Detener TTS y limpiar resultado en doble tap
+    /**
+     * Detener TTS y limpiar resultado con un doble tap
+     */
     public void onDoubleTap() {
         if (ttsManager.isSpeaking()) {
             ttsManager.stop();
@@ -179,7 +205,7 @@ public class MedicineRecognitionPresenter {
      *
      * @param db Base de datos SQLite donde se almacenan los registros.
      */
-    public void sincronizarConFirestore(SQLiteDatabase db) {
+    public void syncWithFirestore(SQLiteDatabase db) {
         FirebaseFirestore firestore = FirebaseFirestore.getInstance();
 
         // Medicamentos
@@ -235,7 +261,9 @@ public class MedicineRecognitionPresenter {
                 .addOnFailureListener(e -> Toast.makeText(activity, "Error al sincronizar principios activos", Toast.LENGTH_SHORT).show());
     }
 
-    // Liberar recursos
+    /**
+     * Liberar recursos al destruir el presenter.
+     */
     public void onDestroy() {
         ttsManager.shutdown();
         executor.shutdown();

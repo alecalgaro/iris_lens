@@ -23,19 +23,17 @@ public class Tools {
      * @return El texto limpio
      */
     public static String cleanupText(String text) {
-        // Reemplaza cualquier caracter que no sea una letra o un numero o un guión "-" con un espacio vacio
+        // Reemplaza cualquier caracter que no sea una letra, numero o guion por un espacio vacio
         String cleanedText = text.replaceAll("[^\\p{L}\\p{N}-]", " ");
 
         // Divide el texto en palabras
         String[] words = cleanedText.split("\\s+");
 
         StringBuilder result = new StringBuilder();
+        // Agrega las palabras limpias
         for (String word : words) {
-            // Solo agrega palabras que tengan mas de 1 caracter
-            if (word.length() > 1) {
-                result.append(word);
-                result.append(" ");
-            }
+            result.append(word);
+            result.append(" ");
         }
 
         // Devuelve el texto limpio
@@ -44,11 +42,12 @@ public class Tools {
     }
 
     /**
-     * Busca similitudes entre una cadena de texto y las palabras en los JSON de medicamentos y principios activos
+     * Busca similitudes entre una cadena de texto y los medicamentos y principios activos de la
+     * base de datos SQLite.
      *
-     * @param stringTesseract La cadena de texto a comparar
-     * @param db La base de datos SQLite donde se almacenan los medicamentos y principios activos
-     * @return Una lista de pares donde cada par contiene el nombre del medicamento o principio activo y su descripcion
+     * @param stringTesseract Cadena de texto a comparar
+     * @param db Base de datos SQLite donde se almacenan los medicamentos y principios activos
+     * @return Lista de pares donde cada par contiene el nombre del medicamento o principio activo y su descripcion
      */
     public static Map<String, Object> searchSimilarity(String stringTesseract, SQLiteDatabase db) {
         Map<String, Object> result = new HashMap<>();

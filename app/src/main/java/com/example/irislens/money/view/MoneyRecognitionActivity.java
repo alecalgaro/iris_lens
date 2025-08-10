@@ -83,7 +83,7 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
                 // Rotar 90 grados (ya que por defecto la camara de OpenCV viene rotada)
                 originalImage = ImageProcessor.rotateImage(originalImage);
                 // Pasar la imagen al presentador para el reconocimiento
-                presenter.onFrame(originalImage);
+                presenter.processCameraFrame(originalImage);
                 return originalImage;
             }
         });

@@ -39,9 +39,9 @@ public class MedicineDbHelper extends SQLiteOpenHelper {
                         MedicineContract.MedicineEntry.COLUMN_DESCRIPTION + " TEXT);";
 
         String SQL_CREATE_DRUG =
-                "CREATE TABLE " + MedicineContract.DrugEntry.TABLE_NAME + " (" +
-                        MedicineContract.DrugEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                        MedicineContract.DrugEntry.COLUMN_NAME + " TEXT NOT NULL UNIQUE);";
+                "CREATE TABLE " + MedicineContract.ActiveIngredient.TABLE_NAME + " (" +
+                        MedicineContract.ActiveIngredient._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        MedicineContract.ActiveIngredient.COLUMN_NAME + " TEXT NOT NULL UNIQUE);";
 
         db.execSQL(SQL_CREATE_MEDICINE);
         db.execSQL(SQL_CREATE_DRUG);
@@ -92,8 +92,8 @@ public class MedicineDbHelper extends SQLiteOpenHelper {
             for (int i = 0; i < principiosArray.length(); i++) {
                 JSONObject principio = principiosArray.getJSONObject(i);
                 String nombre = principio.getString("nombre");
-                db.execSQL("INSERT INTO " + MedicineContract.DrugEntry.TABLE_NAME +
-                                " (" + MedicineContract.DrugEntry.COLUMN_NAME + ") VALUES (?)",
+                db.execSQL("INSERT INTO " + MedicineContract.ActiveIngredient.TABLE_NAME +
+                                " (" + MedicineContract.ActiveIngredient.COLUMN_NAME + ") VALUES (?)",
                         new Object[]{nombre});
             }
         } catch (IOException | JSONException e) {
@@ -105,7 +105,7 @@ public class MedicineDbHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL("DROP TABLE IF EXISTS " + MedicineContract.MedicineEntry.TABLE_NAME);
-        db.execSQL("DROP TABLE IF EXISTS " + MedicineContract.DrugEntry.TABLE_NAME);
+        db.execSQL("DROP TABLE IF EXISTS " + MedicineContract.ActiveIngredient.TABLE_NAME);
         onCreate(db);
     }
 }

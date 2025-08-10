@@ -37,7 +37,7 @@ public class MoneyRecognitionPresenter {
         return ImageProcessor.rotateImage(image);
     }
 
-    public void onFrame(Mat image) {
+    public void processCameraFrame(Mat image) {
         if (isProcessing) return;
 
         frameCount++;
