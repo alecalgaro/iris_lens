@@ -23,14 +23,8 @@ public class ImageProcessor {
      */
     public static Mat rotateImage(Mat src) {
         Mat dst = new Mat();
-        // Obtener el centro de la imagen
-        Point center = new Point(src.cols() / 2, src.rows() / 2);
-        // Definir el ángulo de rotación (90 grados)
-        double angle = -90;
-        // Obtener la matriz de rotación
-        Mat rotationMatrix = Imgproc.getRotationMatrix2D(center, angle, 1.0);
-        // Rotar la imagen
-        Imgproc.warpAffine(src, dst, rotationMatrix, new Size(src.cols(), src.rows()));
+        Core.transpose(src, dst);       // Transpone la matriz
+        Core.flip(dst, dst, 1);         // Flip horizontal: 1 para eje Y
         return dst;
     }
 

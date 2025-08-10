@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 public class Tools {
-    private static final double SIMILARITY_THRESHOLD = 0.8;
+    private static final double SIMILARITY_THRESHOLD = 0.85;
 
     /**
      * Limpia el texto de caracteres no deseados y palabras cortas
@@ -23,7 +23,7 @@ public class Tools {
      * @return El texto limpio
      */
     public static String cleanupText(String text) {
-        // Reemplaza cualquier caracter que no sea una letra, numero o guion por un espacio vacio
+        // Reemplaza cualquier caracter que no sea una letra o un numero o un guión "-" con un espacio vacio
         String cleanedText = text.replaceAll("[^\\p{L}\\p{N}-]", " ");
 
         // Divide el texto en palabras
