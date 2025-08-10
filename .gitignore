@@ -16,3 +16,4 @@ local.properties
 *.log
 *.keystore
 /app/build/
+/app/google-services.json
