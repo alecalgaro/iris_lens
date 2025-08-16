@@ -29,9 +29,17 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+    aaptOptions {
+        noCompress "tflite"
+        noCompress "txt"
+    }
 }
 
 dependencies {
+    // TFLite
+    implementation 'org.tensorflow:tensorflow-lite:2.14.0'
+    implementation 'org.tensorflow:tensorflow-lite-support:0.4.3'
+    implementation 'org.tensorflow:tensorflow-lite-task-vision:0.4.3'
     // Roboflow
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0'
     implementation 'com.squareup.okhttp3:okhttp:4.9.3'
