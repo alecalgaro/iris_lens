@@ -1,6 +1,7 @@
 package com.example.irislens.money.view;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.Surface;
 import android.view.WindowManager;
 import android.view.MotionEvent;
@@ -10,6 +11,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import com.example.irislens.R;
+import com.example.irislens.common.TextToSpeechManager;
 import com.example.irislens.money.presenter.MoneyRecognitionPresenter;
 import com.example.irislens.common.BaseSwipeActivity;
 import com.example.irislens.common.Functionalities;
@@ -31,17 +33,18 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
     private Mat mRgba;
     private TextView tvResult;
     private MoneyRecognitionPresenter presenter;
+    private TextToSpeechManager ttsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_medicine_recognition); // Usa el mismo layout
+        setContentView(R.layout.activity_money_recognition); // Usa el mismo layout
 
         currentFunctionalityIndex = Functionalities.MONEY;
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
-        tvResult.setText("Reconocimiento de billetes. Apunte la cámara hacia el billete que desea reconocer.");
+        tvResult.setText("Reconocimiento de billetes. Apunte la cámara hacia el objeto que desea reconocer.");
 
         permissionManager = new PermissionManager();
         permissionManager.getPermissions(this);
@@ -49,8 +52,17 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
         try {
             presenter = new MoneyRecognitionPresenter(this, tvResult);
         } catch (IOException e) {
+            Log.e("MoneyActivity", "❌ Error cargando el modelo de billetes", e);
             tvResult.setText("Error cargando el modelo de billetes");
         }
+
+        // Mensaje de voz sobre la funcionalidad
+        ttsManager = new TextToSpeechManager(this);
+        // Espera breve para asegurar que TTS este listo
+        new Handler().postDelayed(() -> {
+            ttsManager.speak("Reconocimiento de billetes. " +
+                    "Apunte la cámara hacia el objeto que desea reconocer.");
+        }, 500);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 

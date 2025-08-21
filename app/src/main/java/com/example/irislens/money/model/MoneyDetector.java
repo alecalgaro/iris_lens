@@ -5,6 +5,11 @@ import android.graphics.Bitmap;
 import android.graphics.RectF;
 import android.util.Log;
 
+import org.tensorflow.lite.DataType;
+import org.tensorflow.lite.support.common.ops.NormalizeOp;
+import org.tensorflow.lite.support.image.ImageProcessor;
+import org.tensorflow.lite.support.image.ops.ResizeOp;
+import org.tensorflow.lite.support.label.Category;
 import org.tensorflow.lite.task.vision.detector.Detection;
 import org.tensorflow.lite.task.vision.detector.ObjectDetector;
 import org.tensorflow.lite.support.image.TensorImage;
@@ -23,26 +28,23 @@ public class MoneyDetector {
     public MoneyDetector(Context context) throws IOException {
         // Cargar labels.txt
         labels = loadLabels(context, "labels.txt");
-        Log.d("MoneyDetector", "Labels cargadas: " + labels.size());
+        Log.d("MoneyDetector", "Labels cargadas: " + labels.size() + " -> " + labels);
 
-        // Cargar modelo TFLite
+        // Configurar detector
         ObjectDetector.ObjectDetectorOptions options =
                 ObjectDetector.ObjectDetectorOptions.builder()
-                        .setMaxResults(3)
-                        .setScoreThreshold(0.5f)
+                        .setMaxResults(5)
+                        .setScoreThreshold(0.5f) // umbral
                         .build();
-
 
         objectDetector = ObjectDetector.createFromFileAndOptions(
                 context,
-                "model.tflite",
+                "detector.tflite",
                 options
         );
         Log.d("MoneyDetector", "Modelo cargado correctamente");
     }
 
-
-    // ✅ Versión sin streams, 100% compatible
     private List<String> loadLabels(Context context, String fileName) throws IOException {
         List<String> labels = new ArrayList<>();
         try (InputStream is = context.getAssets().open(fileName);
@@ -56,15 +58,45 @@ public class MoneyDetector {
     }
 
     public List<Detection> detect(Bitmap bitmap) {
-        TensorImage image = TensorImage.fromBitmap(bitmap);
-        return objectDetector.detect(image);
-    }
-    /*
-    public List<Detection> detect(Bitmap bitmap) {
-        return new ArrayList<>(); // Vacío, para testear el flujo
-    }
-    */
+        // ✅ Asegurar formato correcto del bitmap
+        bitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
 
+        // ✅ Preprocesamiento alineado con Colab
+        TensorImage image = new TensorImage(DataType.FLOAT32);
+        image.load(bitmap);
+
+        ImageProcessor processor = new ImageProcessor.Builder()
+                .add(new ResizeOp(320, 320, ResizeOp.ResizeMethod.BILINEAR))
+                //.add(new NormalizeOp(0f, 255f)) // No se debe normalizar porque los datos ya llegan normalizados (si descomentamos esta línea, baja el score de detección)
+                .build();
+
+        TensorImage processedImage = processor.process(image);
+
+        // ✅ Detección
+        List<Detection> rawDetections = objectDetector.detect(processedImage);
+        List<Detection> filteredDetections = new ArrayList<>();
+
+        float maxScore = 0f;
+        for (Detection d : rawDetections) {
+            if (!d.getCategories().isEmpty()) {
+                float score = d.getCategories().get(0).getScore();
+                if (score > maxScore) maxScore = score;
+                if (score >= 0.5f) {
+                    filteredDetections.add(d);
+                }
+            }
+        }
+
+        Log.d("MoneyDetector", "Detectados " + filteredDetections.size() + " objetos válidos. Score máximo: " + maxScore);
+
+        // ✅ Loguear cada detección
+        for (Detection d : filteredDetections) {
+            Category category = d.getCategories().get(0);
+            Log.d("MoneyDetector", "Detectado: " + category.getLabel() + " (" + category.getScore() + ")");
+        }
+
+        return filteredDetections;
+    }
 
     public List<String> getLabels() {
         return labels;
