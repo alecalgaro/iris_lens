@@ -34,7 +34,7 @@ public class MoneyDetector {
         ObjectDetector.ObjectDetectorOptions options =
                 ObjectDetector.ObjectDetectorOptions.builder()
                         .setMaxResults(5)
-                        .setScoreThreshold(0.5f) // umbral
+                        .setScoreThreshold(0.4f) // umbral
                         .build();
 
         objectDetector = ObjectDetector.createFromFileAndOptions(
@@ -79,21 +79,21 @@ public class MoneyDetector {
         float maxScore = 0f;
         for (Detection d : rawDetections) {
             if (!d.getCategories().isEmpty()) {
-                float score = d.getCategories().get(0).getScore();
+                Category category = d.getCategories().get(0);
+                float score = category.getScore();
                 if (score > maxScore) maxScore = score;
-                if (score >= 0.5f) {
+
+                // Logear **todos los scores**, incluso si son bajos
+                Log.d("MoneyDetector", "Frame Score: " + category.getLabel() + " -> " + score);
+
+                // Filtrar solo para detecciones “válidas”
+                if (score >= 0.4f) {
                     filteredDetections.add(d);
                 }
             }
         }
 
         Log.d("MoneyDetector", "Detectados " + filteredDetections.size() + " objetos válidos. Score máximo: " + maxScore);
-
-        // ✅ Loguear cada detección
-        for (Detection d : filteredDetections) {
-            Category category = d.getCategories().get(0);
-            Log.d("MoneyDetector", "Detectado: " + category.getLabel() + " (" + category.getScore() + ")");
-        }
 
         return filteredDetections;
     }
