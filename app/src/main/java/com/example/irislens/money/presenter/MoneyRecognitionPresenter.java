@@ -2,11 +2,13 @@ package com.example.irislens.money.presenter;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
+import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.widget.TextView;
 
+import com.example.irislens.R;
 import com.example.irislens.money.model.MoneyDetector;
 import com.example.irislens.common.ImageProcessor;
 import com.example.irislens.common.TextToSpeechManager;
@@ -30,6 +32,7 @@ public class MoneyRecognitionPresenter {
     private final TextToSpeechManager ttsManager;
     private final ExecutorService executor;
     private volatile boolean isProcessing = false;
+    private int frameCount = 0;
 
     private static final int NO_DETECTION_THRESHOLD = 8; // limite de frames seguidos sin deteccion
     private int noDetectionCount = 0;
@@ -49,15 +52,24 @@ public class MoneyRecognitionPresenter {
     public void onFrame(Mat image) {
         // Evitar procesamiento concurrente
         if (isProcessing) return;
-        // Convertir Mat a Bitmap
-        Bitmap bitmap = ImageProcessor.convertToBitmap(image);
-        isProcessing = true;
-        // Procesar frame en un hilo separado
-        Handler handler = new Handler(Looper.getMainLooper());
-        executor.execute(() -> {
-            List<Detection> results = detector.detect(bitmap);
-            handler.post(() -> handleDetection(results));
-        });
+        frameCount++;
+        if (frameCount == 10) {
+            if (!ttsManager.isSpeaking()) {
+                // Reproducir un sonido para indicar al usuario que se ha capturado un frame
+                MediaPlayer mediaPlayer = MediaPlayer.create(activity, R.raw.captura);
+                mediaPlayer.start();
+                // Convertir Mat a Bitmap
+                Bitmap bitmap = ImageProcessor.convertToBitmap(image);
+                isProcessing = true;
+                // Procesar frame en un hilo separado
+                Handler handler = new Handler(Looper.getMainLooper());
+                executor.execute(() -> {
+                    List<Detection> results = detector.detect(bitmap);
+                    handler.post(() -> handleDetection(results));
+                });
+            }
+            frameCount = 0;
+        }
     }
 
     private void handleDetection(List<Detection> results) {
