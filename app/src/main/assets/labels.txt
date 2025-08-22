@@ -1,0 +1,12 @@
+10000_f_heroes
+1000_f_animales
+10_d_2002
+10_f_2002
+20000_f_heroes
+2000_f_heroes
+20_d_animales
+20_f_animales
+500_d_animales
+500_f_animales
+50_d_animales
+50_f_animales
