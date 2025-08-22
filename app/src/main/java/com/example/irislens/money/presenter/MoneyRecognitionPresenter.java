@@ -31,7 +31,7 @@ public class MoneyRecognitionPresenter {
     private final ExecutorService executor;
     private volatile boolean isProcessing = false;
 
-    private static final int NO_DETECTION_THRESHOLD = 8; // frames seguidos sin detección
+    private static final int NO_DETECTION_THRESHOLD = 8; // limite de frames seguidos sin deteccion
     private int noDetectionCount = 0;
     private String lastResultText = "";
 
@@ -43,13 +43,17 @@ public class MoneyRecognitionPresenter {
         this.detector = new MoneyDetector(activity.getApplicationContext());
     }
 
+    /** Procesa un frame de la camara.
+     * @param image Frame en formato Mat (OpenCV)
+     */
     public void onFrame(Mat image) {
+        // Evitar procesamiento concurrente
         if (isProcessing) return;
-
+        // Convertir Mat a Bitmap
         Bitmap bitmap = ImageProcessor.convertToBitmap(image);
         isProcessing = true;
+        // Procesar frame en un hilo separado
         Handler handler = new Handler(Looper.getMainLooper());
-
         executor.execute(() -> {
             List<Detection> results = detector.detect(bitmap);
             handler.post(() -> handleDetection(results));
@@ -62,21 +66,20 @@ public class MoneyRecognitionPresenter {
         if (results.isEmpty()) {
             noDetectionCount++;
 
-            // 🔹 Mantener la pantalla en blanco si no hay detección
+            // Mantener el texto vacio si no hay deteccion
             tvResult.setText("");
 
-            // 🔹 Solo avisar tras varios intentos fallidos
+            // Si se supera el umbral de no deteccion, emitir mensaje de aviso
             if (noDetectionCount >= NO_DETECTION_THRESHOLD) {
                 ttsManager.speak("No se pudo detectar. Mejore la posición de la cámara o del objeto.");
                 Log.d("MoneyPresenter", "⚠️ No se pudo detectar tras " + NO_DETECTION_THRESHOLD + " frames");
                 noDetectionCount = 0; // reset contador
             }
         } else {
-            noDetectionCount = 0; // reset porque sí hay detección
+            noDetectionCount = 0; // reset contador si hay deteccion
 
-            // 🔹 Agrupar detecciones por label
+            // Agrupar detecciones de billetes por label
             Map<String, Integer> countByLabel = new HashMap<>();
-
             for (Detection detection : results) {
                 if (!detection.getCategories().isEmpty()) {
                     Category category = detection.getCategories().get(0);
@@ -87,13 +90,13 @@ public class MoneyRecognitionPresenter {
                     float score = category.getScore();
                     RectF box = detection.getBoundingBox();
 
-                    // ✅ Log detallado (se mantiene)
+                    // Log detallado
                     Log.d("MoneyPresenter", String.format(
                             "📌 Detectado -> Label: %s | Index: %d | Score: %.2f | Box: %s",
                             label, index, score, box.toString()
                     ));
 
-                    // ✅ Agrupar por etiqueta
+                    // Agrupar por etiqueta
                     Integer current = countByLabel.get(label);
                     if (current == null) {
                         countByLabel.put(label, 1);
@@ -103,7 +106,7 @@ public class MoneyRecognitionPresenter {
                 }
             }
 
-            // 🔹 Construir texto simplificado para pantalla
+            // Construir texto simplificado para pantalla
             StringBuilder sb = new StringBuilder();
             StringBuilder sbTTS = new StringBuilder(); // texto separado para TTS
 
@@ -128,7 +131,7 @@ public class MoneyRecognitionPresenter {
             lastResultText = sb.toString().trim();
             tvResult.setText(lastResultText);
 
-            // 🔹 Mensaje de voz reducido (ej: "2 de 10, 3 de 50")
+            // Mensaje de voz reducido (ej: "2 de 10, 3 de 50")
             ttsManager.speak(sbTTS.toString().trim());
         }
 

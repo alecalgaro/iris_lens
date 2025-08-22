@@ -38,7 +38,7 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_money_recognition); // Usa el mismo layout
+        setContentView(R.layout.activity_money_recognition);
 
         currentFunctionalityIndex = Functionalities.MONEY;
 
@@ -61,7 +61,7 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
         // Espera breve para asegurar que TTS este listo
         new Handler().postDelayed(() -> {
             ttsManager.speak("Reconocimiento de billetes. " +
-                    "Apunte la cámara hacia el objeto que desea reconocer.");
+                    "Apunte la cámara hacia el billete que desea reconocer.");
         }, 500);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -75,6 +75,7 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
         cameraBridgeViewBase.setCvCameraViewListener(new CameraBridgeViewBase.CvCameraViewListener2() {
             @Override
             public void onCameraViewStarted(int width, int height) {
+                // Inicializar la matriz RGBA
                 mRgba = new Mat(height, width, CvType.CV_8UC4);
             }
 
@@ -85,17 +86,19 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
 
             @Override
             public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+                // Obtener la imagen en formato RGBA
                 Mat originalImage = inputFrame.rgba();
 
+                // Rotar la imagen si la orientacion del dispositivo es vertical
                 int rotation = getWindowManager().getDefaultDisplay().getRotation();
                 if (rotation == Surface.ROTATION_0) {
                     originalImage = com.example.irislens.common.ImageProcessor.rotateImage(originalImage);
                 }
-
+                // Procesar el frame en el presentador
                 if (presenter != null) {
                     presenter.onFrame(originalImage);
                 }
-
+                // Devolver la imagen original para mostrarla en pantalla
                 return originalImage;
             }
         });
@@ -135,6 +138,7 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
         return super.dispatchTouchEvent(ev);
     }
 
+    /** Manejo del resultado de los permisos */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
