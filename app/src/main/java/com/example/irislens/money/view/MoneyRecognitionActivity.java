@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class MoneyRecognitionActivity extends BaseSwipeActivity {
+    private static final String TAG = "MoneyActivity";
 
     private PermissionManager permissionManager;
     private CameraBridgeViewBase cameraBridgeViewBase;
@@ -52,8 +53,17 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
         try {
             presenter = new MoneyRecognitionPresenter(this, tvResult);
         } catch (IOException e) {
-            Log.e("MoneyActivity", "❌ Error cargando el modelo de billetes", e);
-            tvResult.setText("Error cargando el modelo de billetes");
+            Log.e(TAG, "Error cargando el modelo de billetes TensorFlow Lite", e);
+            tvResult.setText("Error cargando el modelo de billetes: " + e.getMessage());
+
+            // Mostrar información más detallada del error
+            if (e.getMessage() != null) {
+                if (e.getMessage().contains("assets")) {
+                    Log.e(TAG, "Error relacionado con assets - verificar que los archivos .tflite y labels.txt estén en assets/");
+                } else if (e.getMessage().contains("model")) {
+                    Log.e(TAG, "Error del modelo - verificar formato TensorFlow Lite");
+                }
+            }
         }
 
         // Mensaje de voz sobre la funcionalidad
@@ -119,8 +129,18 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (cameraBridgeViewBase != null) cameraBridgeViewBase.disableView();
-        if (presenter != null) presenter.onDestroy();
+
+        if (cameraBridgeViewBase != null) {
+            cameraBridgeViewBase.disableView();
+        }
+
+        if (presenter != null) {
+            presenter.onDestroy();
+        }
+
+        if (ttsManager != null) {
+            ttsManager.shutdown();
+        }
     }
 
     @Override

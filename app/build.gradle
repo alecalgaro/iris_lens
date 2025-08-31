@@ -17,12 +17,19 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled false
         }
     }
     compileOptions {
@@ -32,24 +39,85 @@ android {
     aaptOptions {
         noCompress "tflite"
         noCompress "txt"
+        noCompress "model"
     }
+    packagingOptions {
+        pickFirst '**/libtensorflowlite_jni.so'
+        pickFirst '**/libc++_shared.so'
+        pickFirst '**/libtensorflowlite_c.so'
+        pickFirst '**/libtensorflowlite_flex.so'
+
+        // Excluir librerías problemáticas que pueden causar conflictos
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/NOTICE.txt'
+    }
+    ndkVersion "21.4.7075529" // Versión compatible con API 23
 }
 
 dependencies {
-    // TFLite
-    implementation 'org.tensorflow:tensorflow-lite:2.14.0'
-    implementation 'org.tensorflow:tensorflow-lite-support:0.4.3'
-    implementation 'org.tensorflow:tensorflow-lite-task-vision:0.4.3'
+    // TFLite base
+    //implementation 'org.tensorflow:tensorflow-lite:2.14.0'
+    //implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
+    //implementation 'org.tensorflow:tensorflow-lite-task-vision:0.4.4'
+
+    // ML Kit Object Detection (general + custom)
+    //implementation 'com.google.mlkit:object-detection:17.0.1'
+    //implementation 'com.google.mlkit:object-detection-custom:17.0.1'
+    //implementation 'com.google.android.gms:play-services-mlkit-common:18.7.0'
+
+    // ========================================
+    // TENSORFLOW LITE - DEPENDENCIAS PRINCIPALES
+    // ========================================
+
+    // TensorFlow Lite Core (OBLIGATORIO)
+    //implementation 'org.tensorflow:tensorflow-lite:2.13.0'
+
+    // TensorFlow Lite Support Library (OBLIGATORIO para procesamiento de imágenes)
+    //implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
+
+    // TensorFlow Lite GPU Delegate (OPCIONAL - para aceleración GPU)
+    //implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4'
+
+    // TensorFlow Lite Metadata (OPCIONAL - si usas modelos con metadatos)
+    //implementation 'org.tensorflow:tensorflow-lite-metadata:0.4.4'
+
+    // 🔧 Versiones compatibles con minSdk 23
+    //implementation 'org.tensorflow:tensorflow-lite:2.12.0'        // ⬇️ Bajada a 2.12
+    //implementation 'org.tensorflow:tensorflow-lite-support:0.4.3'  // ⬇️ Bajada a 0.4.3
+
+    // GPU Delegate (opcional, también compatible)
+    //implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.3'
+
+    // Metadata (opcional)
+    //implementation 'org.tensorflow:tensorflow-lite-metadata:0.4.3'
+
+    // TensorFlow Lite - versiones probadas para API 23+
+    implementation 'org.tensorflow:tensorflow-lite:2.11.0'  // ⬇️ Bajada más
+    implementation 'org.tensorflow:tensorflow-lite-support:0.4.2'  // ⬇️ Bajada más
+
+    // NO incluir GPU delegate en Android 6 - causa problemas
+    // implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.2'
+
+    // Metadata (opcional, versión compatible)
+    implementation 'org.tensorflow:tensorflow-lite-metadata:0.4.2'
+
     // Roboflow
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0'
-    implementation 'com.squareup.okhttp3:okhttp:4.9.3'
-    implementation 'com.squareup.okio:okio:2.10.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2'
+    implementation 'com.squareup.okhttp3:okhttp:4.8.1'
+    implementation 'com.squareup.okio:okio:2.8.0'
+
     // OpenCV
     implementation project(':opencv')
+
     // Tesseract
     implementation 'cz.adaptech.tesseract4android:tesseract4android:4.6.0'
+
     // commons-text para calcular similitud de palabras
     implementation 'org.apache.commons:commons-text:1.9'
+
     // Firebase BoM
     implementation platform('com.google.firebase:firebase-bom:34.0.0')
 
@@ -58,6 +126,7 @@ dependencies {
     implementation libs.activity
     implementation libs.constraintlayout
     implementation libs.firebase.firestore
+
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
