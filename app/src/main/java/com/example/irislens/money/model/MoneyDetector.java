@@ -3,278 +3,75 @@ package com.example.irislens.money.model;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
-import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.support.common.ops.NormalizeOp;
-import org.tensorflow.lite.support.image.ImageProcessor;
-import org.tensorflow.lite.support.image.TensorImage;
-import org.tensorflow.lite.support.image.ops.ResizeOp;
-import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
+import org.tensorflow.lite.support.common.FileUtil;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * MoneyDetector para modelos YOLOv8 TFLite.
+ * - Soporta outputs [1, 84, N] y [1, N, 84]
+ * - NMS clase-agnóstico
+ * - Coordenadas en píxeles del bitmap original
+ * - API asíncrona compatible con MoneyRecognitionPresenter
+ */
 public class MoneyDetector {
+
     private static final String TAG = "MoneyDetector";
     private static final String MODEL_PATH = "detector.tflite";
     private static final String LABELS_PATH = "labels.txt";
 
-    // Thresholds dinámicos (podés ajustarlos en runtime si querés)
-    private static final float CONFIDENCE_THRESHOLD = 0.96f;
-    private static final float NMS_THRESHOLD = 0.7f;
-
+    private static final float CONF_THRESHOLD = 0.25f; // ajustar si no detecta
+    private static final float NMS_IOU_THRESHOLD = 0.5f;
     private static final int INPUT_SIZE = 640;
 
-    private Interpreter interpreter;
-    private List<String> labels;
-    private ImageProcessor imageProcessor;
-    private TensorImage inputImageBuffer;
-    private TensorBuffer outputBuffer;
-    private ExecutorService executorService;
+    private final Interpreter interpreter;
+    private final List<String> labels;
+    private final int numClasses;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public interface DetectionCallback {
         void onDetectionComplete(@NonNull List<DetectionResult> results);
         void onDetectionError(@NonNull Exception error);
     }
 
-    public MoneyDetector(Context context) throws IOException {
-        Log.d(TAG, "Inicializando MoneyDetector para Android 6+...");
+    public MoneyDetector(@NonNull Context context) throws IOException {
+        Log.d(TAG, "Inicializando MoneyDetector...");
 
-        // 1. Verificar compatibilidad básica
-        if (Build.VERSION.SDK_INT < 23) {
-            throw new RuntimeException("Requiere Android 6.0+ (API 23)");
-        }
-
-        labels = loadLabelsFromAssets(context, LABELS_PATH);
-        Log.d(TAG, "Labels cargadas: " + labels.size());
-
-        MappedByteBuffer modelBuffer = loadModelFromAssets(context, MODEL_PATH);
-        Log.d(TAG, "Modelo cargado: " + modelBuffer.capacity() + " bytes");
-
-        // 2. Configuración ULTRA CONSERVADORA para Android 6
+        MappedByteBuffer model = FileUtil.loadMappedFile(context, MODEL_PATH);
         Interpreter.Options options = new Interpreter.Options();
-
-        // Threads mínimos para estabilidad
-        int numThreads = Math.min(2, Runtime.getRuntime().availableProcessors());
-        options.setNumThreads(numThreads);
-
-        // ⚠️ CRÍTICO: TODO DESHABILITADO para Android 6
+        int threads = Math.min(2, Runtime.getRuntime().availableProcessors());
+        options.setNumThreads(threads);
         options.setUseNNAPI(false);
-        options.setUseXNNPACK(false);  // ❌ NUNCA habilitar en Android 6
-        options.setAllowFp16PrecisionForFp32(false);
 
-        Log.d(TAG, "Configuración ultra-segura: " + numThreads + " threads, sin aceleración");
+        interpreter = new Interpreter(model, options);
+        Log.d(TAG, "✅ Modelo cargado: " + MODEL_PATH + " | threads=" + threads);
 
-        try {
-            interpreter = new Interpreter(modelBuffer, options);
-            Log.d(TAG, "Intérprete inicializado correctamente");
-        } catch (Exception e) {
-            Log.e(TAG, "Error creando intérprete", e);
-            throw new IOException("TensorFlow Lite falló: " + e.getMessage());
-        }
-
-        // 3. Procesamiento de imagen - QUITAR normalización para YOLOv8
-        imageProcessor = new ImageProcessor.Builder()
-                .add(new ResizeOp(INPUT_SIZE, INPUT_SIZE, ResizeOp.ResizeMethod.BILINEAR))
-                .add(new NormalizeOp(0f, 255f)) // YOLOv8 espera valores normalizados [0,1]. Se divide por 255
-                .build();
-
-        try {
-            inputImageBuffer = new TensorImage(org.tensorflow.lite.DataType.FLOAT32);
-            int[] outputShape = interpreter.getOutputTensor(0).shape();
-            Log.d(TAG, "Output tensor shape: " + java.util.Arrays.toString(outputShape));
-            outputBuffer = TensorBuffer.createFixedSize(outputShape, org.tensorflow.lite.DataType.FLOAT32);
-        } catch (Exception e) {
-            Log.e(TAG, "Error configurando tensors", e);
-            throw new IOException("Error tensors: " + e.getMessage());
-        }
-
-        executorService = Executors.newSingleThreadExecutor();
-        Log.d(TAG, "MoneyDetector inicializado para Android 6");
+        labels = FileUtil.loadLabels(context, LABELS_PATH);
+        numClasses = labels.size();
+        Log.d(TAG, "✅ Labels cargadas (" + numClasses + "): " + labels);
     }
 
-    public List<DetectionResult> detect(Bitmap bitmap) {
-        Log.d(TAG, "Detectando en bitmap: " + bitmap.getWidth() + "x" + bitmap.getHeight());
-
-        inputImageBuffer.load(bitmap);
-        inputImageBuffer = imageProcessor.process(inputImageBuffer);
-
-        long startTime = System.currentTimeMillis();
-        interpreter.run(inputImageBuffer.getBuffer(), outputBuffer.getBuffer());
-        long inferenceTime = System.currentTimeMillis() - startTime;
-        Log.d(TAG, "Inferencia completada en " + inferenceTime + " ms");
-
-        return postProcessOutput(outputBuffer.getFloatArray(), bitmap.getWidth(), bitmap.getHeight());
-    }
-
-    private List<DetectionResult> postProcessOutput(float[] output, int imageWidth, int imageHeight) {
-        List<DetectionResult> detections = new ArrayList<>();
-        int numClasses = labels.size();
-
-        // YOLOv8 formato: [1, numClasses+4, numPredictions] aplanado
-        // Primero detectar el formato correcto
-        int totalFeatures = numClasses + 4; // cx, cy, w, h + classes
-        int numPredictions = output.length / totalFeatures;
-
-        Log.d(TAG, "Formato detectado - Features: " + totalFeatures + ", Predicciones: " + numPredictions);
-
-        for (int i = 0; i < numPredictions; i++) {
-            int offset = i * totalFeatures;
-
-            // Verificar bounds
-            if (offset + totalFeatures > output.length) {
-                continue;
-            }
-
-            // Coordenadas del bounding box (formato YOLOv8: cx, cy, w, h normalizadas)
-            float centerX = output[offset];
-            float centerY = output[offset + 1];
-            float width = output[offset + 2];
-            float height = output[offset + 3];
-
-            // Encontrar clase con mayor probabilidad
-            float maxScore = 0;
-            int maxIndex = 0;
-            for (int c = 0; c < numClasses; c++) {
-                if (offset + 4 + c < output.length) {
-                    float score = output[offset + 4 + c];
-                    if (score > maxScore) {
-                        maxScore = score;
-                        maxIndex = c;
-                    }
-                }
-            }
-
-            // Filtrar por confianza
-            if (maxScore < CONFIDENCE_THRESHOLD) continue;
-
-            // Convertir coordenadas normalizadas [0,1] a píxeles
-            float scaleX = (float) imageWidth / INPUT_SIZE;
-            float scaleY = (float) imageHeight / INPUT_SIZE;
-
-            float left = (centerX - width / 2) * scaleX;
-            float top = (centerY - height / 2) * scaleY;
-            float right = (centerX + width / 2) * scaleX;
-            float bottom = (centerY + height / 2) * scaleY;
-
-            // Clamp a límites de imagen
-            RectF box = new RectF(
-                    Math.max(0, left),
-                    Math.max(0, top),
-                    Math.min(imageWidth, right),
-                    Math.min(imageHeight, bottom)
-            );
-
-            String className = (maxIndex < labels.size()) ? labels.get(maxIndex) : "clase_" + maxIndex;
-            detections.add(new DetectionResult(className, maxScore, box));
-        }
-
-        List<DetectionResult> finalResults = applyNMS(detections);
-        Log.d(TAG, "Detecciones finales tras NMS: " + finalResults.size());
-        return finalResults;
-    }
-
-    private List<DetectionResult> applyNMS(List<DetectionResult> detections) {
-        // Ordenar detecciones por confianza descendente
-        Collections.sort(detections, new Comparator<DetectionResult>() {
-            @Override
-            public int compare(DetectionResult a, DetectionResult b) {
-                return Float.compare(b.getConfidence(), a.getConfidence());
-            }
-        });
-
-        List<DetectionResult> filtered = new ArrayList<>();
-        boolean[] suppressed = new boolean[detections.size()];
-
-        for (int i = 0; i < detections.size(); i++) {
-            if (suppressed[i]) continue;
-            DetectionResult d1 = detections.get(i);
-            filtered.add(d1);
-
-            for (int j = i + 1; j < detections.size(); j++) {
-                if (suppressed[j]) continue;
-                DetectionResult d2 = detections.get(j);
-
-                float iou = calculateIOU(d1.getBoundingBox(), d2.getBoundingBox());
-                if (iou > NMS_THRESHOLD) {
-                    suppressed[j] = true;
-                }
-            }
-        }
-
-        return filtered;
-    }
-
-    private float calculateIOU(RectF a, RectF b) {
-        float intersectionLeft = Math.max(a.left, b.left);
-        float intersectionTop = Math.max(a.top, b.top);
-        float intersectionRight = Math.min(a.right, b.right);
-        float intersectionBottom = Math.min(a.bottom, b.bottom);
-
-        float intersectionArea = Math.max(0, intersectionRight - intersectionLeft) *
-                Math.max(0, intersectionBottom - intersectionTop);
-        float areaA = (a.right - a.left) * (a.bottom - a.top);
-        float areaB = (b.right - b.left) * (b.bottom - b.top);
-        float union = areaA + areaB - intersectionArea;
-
-        return union <= 0 ? 0 : intersectionArea / union;
-    }
-
-    private List<String> loadLabelsFromAssets(Context context, String fileName) throws IOException {
-        List<String> labels = new ArrayList<>();
-        InputStream is = context.getAssets().open(fileName);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            labels.add(line);
-        }
-        reader.close();
-        return labels;
-    }
-
-    public void detect(Bitmap bitmap, @NonNull DetectionCallback callback) {
-        if (bitmap == null || bitmap.isRecycled()) {
-            callback.onDetectionError(new IllegalArgumentException("Bitmap inválido"));
-            return;
-        }
-
-        executorService.execute(() -> {
+    public void detect(@NonNull Bitmap bitmap, @NonNull DetectionCallback callback) {
+        executor.execute(() -> {
             try {
-                // Preprocesar imagen
-                inputImageBuffer.load(bitmap);
-                inputImageBuffer = imageProcessor.process(inputImageBuffer);
-
-                // Ejecutar inferencia
-                long startTime = System.currentTimeMillis();
-                interpreter.run(inputImageBuffer.getBuffer(), outputBuffer.getBuffer());
-                //long inferenceTime = System.currentTimeMillis() - startTime;
-                //Log.d(TAG, "Inferencia completada en " + inferenceTime + "ms");
-
-                // Postprocesar salida
-                List<DetectionResult> results = postProcessOutput(
-                        outputBuffer.getFloatArray(),
-                        bitmap.getWidth(),
-                        bitmap.getHeight()
-                );
-                callback.onDetectionComplete(results);
-
+                List<DetectionResult> out = detectInternal(bitmap);
+                callback.onDetectionComplete(out);
             } catch (Exception e) {
                 Log.e(TAG, "Error en detección", e);
                 callback.onDetectionError(e);
@@ -282,59 +79,180 @@ public class MoneyDetector {
         });
     }
 
-    private MappedByteBuffer loadModelFromAssets(Context context, String modelPath) throws IOException {
-        // Crear archivo temporal en storage interno
-        File tempFile = new File(context.getFilesDir(), modelPath);
+    private List<DetectionResult> detectInternal(@NonNull Bitmap bitmap) {
+        long t0 = System.currentTimeMillis();
+        ByteBuffer input = preprocess(bitmap);
 
-        // Copiar desde assets solo si no existe
-        if (!tempFile.exists()) {
-            try (InputStream is = context.getAssets().open(modelPath);
-                 FileOutputStream fos = new FileOutputStream(tempFile)) {
+        int[] outShape = interpreter.getOutputTensor(0).shape();
+        DataType outType = interpreter.getOutputTensor(0).dataType();
+        //Log.d(TAG, "Output shape=" + Arrays.toString(outShape) + " dtype=" + outType);
 
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = is.read(buffer)) != -1) {
-                    fos.write(buffer, 0, bytesRead);
-                }
+        if (outShape.length != 3)
+            throw new IllegalStateException("Output TFLite inesperado: " + Arrays.toString(outShape));
+
+        float[][][] raw = new float[outShape[0]][outShape[1]][outShape[2]];
+        interpreter.run(input, raw);
+
+        // 🔹 Log crudo de primeras predicciones
+        int debugLimit = Math.min(5, raw[0].length);
+        for (int i = 0; i < debugLimit; i++) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("RawPred[").append(i).append("] cx=").append(raw[0][0][i])
+                    .append(" cy=").append(raw[0][1][i])
+                    .append(" w=").append(raw[0][2][i])
+                    .append(" h=").append(raw[0][3][i]);
+            for (int c = 0; c < Math.min(3, numClasses); c++) {
+                sb.append(" c").append(c).append("=").append(raw[0][4 + c][i]);
+            }
+            //Log.d(TAG, sb.toString());
+        }
+
+        int channels = 4 + numClasses;
+        boolean layoutCFirst;
+        if (outShape[1] == channels) layoutCFirst = true;
+        else if (outShape[2] == channels) layoutCFirst = false;
+        else layoutCFirst = (outShape[1] > outShape[2] && outShape[1] >= channels);
+
+        List<DetectionResult> preNms = layoutCFirst
+                ? parsePreds_CFirst(raw[0], bitmap.getWidth(), bitmap.getHeight())
+                : parsePreds_PFirst(raw[0], bitmap.getWidth(), bitmap.getHeight());
+
+        // 🔹 Log detecciones candidatas
+        /*
+        for (DetectionResult det : preNms) {
+            Log.d(TAG, "CandidateDetection: " + det.getLabel() +
+                    " score=" + det.getConfidence() +
+                    " box=" + det.getBoundingBox());
+        }
+        */
+
+        List<DetectionResult> finalDetections = nmsClassAgnostic(preNms, NMS_IOU_THRESHOLD);
+
+        long dt = System.currentTimeMillis() - t0;
+        Log.d(TAG, "⏱️ Inferencia+post: " + dt + " ms | detecciones finales=" + finalDetections.size());
+
+        return finalDetections;
+    }
+
+    private ByteBuffer preprocess(@NonNull Bitmap src) {
+        Bitmap resized = Bitmap.createScaledBitmap(src, INPUT_SIZE, INPUT_SIZE, true);
+        ByteBuffer buf = ByteBuffer.allocateDirect(1 * INPUT_SIZE * INPUT_SIZE * 3 * 4);
+        buf.order(ByteOrder.nativeOrder());
+        buf.rewind();
+
+        int[] pixels = new int[INPUT_SIZE * INPUT_SIZE];
+        resized.getPixels(pixels, 0, INPUT_SIZE, 0, 0, INPUT_SIZE, INPUT_SIZE);
+
+        for (int p : pixels) {
+            buf.putFloat(((p >> 16) & 0xFF) / 255.0f);
+            buf.putFloat(((p >> 8) & 0xFF) / 255.0f);
+            buf.putFloat((p & 0xFF) / 255.0f);
+        }
+        buf.rewind();
+        return buf;
+    }
+
+    private List<DetectionResult> parsePreds_CFirst(float[][] preds, int origW, int origH) {
+        List<DetectionResult> out = new ArrayList<>();
+        int N = preds[0].length;
+        for (int i = 0; i < N; i++) {
+            float cx = preds[0][i], cy = preds[1][i], w = preds[2][i], h = preds[3][i];
+            int best = -1; float bestScore = -1f;
+            for (int c = 0; c < numClasses; c++) {
+                float s = preds[4 + c][i];
+                if (s > bestScore) { bestScore = s; best = c; }
+            }
+            if (bestScore < CONF_THRESHOLD || best < 0) continue;
+            Log.d(TAG, "parseCFirst: class=" + best + " (" + labels.get(best) + ") score=" + bestScore +
+                    " cx=" + cx + " cy=" + cy + " w=" + w + " h=" + h);
+            addBox(out, cx, cy, w, h, best, bestScore, origW, origH);
+        }
+        return out;
+    }
+
+    private List<DetectionResult> parsePreds_PFirst(float[][] preds, int origW, int origH) {
+        List<DetectionResult> out = new ArrayList<>();
+        int N = preds.length;
+        for (int i = 0; i < N; i++) {
+            float cx = preds[i][0], cy = preds[i][1], w = preds[i][2], h = preds[i][3];
+            int best = -1; float bestScore = -1f;
+            for (int c = 0; c < numClasses; c++) {
+                float s = preds[i][4 + c];
+                if (s > bestScore) { bestScore = s; best = c; }
+            }
+            if (bestScore < CONF_THRESHOLD || best < 0) continue;
+            Log.d(TAG, "parsePFirst: class=" + best + " (" + labels.get(best) + ") score=" + bestScore +
+                    " cx=" + cx + " cy=" + cy + " w=" + w + " h=" + h);
+            addBox(out, cx, cy, w, h, best, bestScore, origW, origH);
+        }
+        return out;
+    }
+
+    private void addBox(List<DetectionResult> list, float cx, float cy, float w, float h,
+                        int classId, float score, int origW, int origH) {
+        float left = cx - w/2f, top = cy - h/2f, right = cx + w/2f, bottom = cy + h/2f;
+        float scaleX = (float) origW / INPUT_SIZE, scaleY = (float) origH / INPUT_SIZE;
+        RectF box = new RectF(
+                clamp(left*scaleX, 0, origW),
+                clamp(top*scaleY, 0, origH),
+                clamp(right*scaleX, 0, origW),
+                clamp(bottom*scaleY, 0, origH)
+        );
+        if (box.width() <= 0 || box.height() <= 0) return; // 🔹 permitir cajas grandes
+        String label = (classId >= 0 && classId < labels.size()) ? labels.get(classId) : ("class_" + classId);
+        list.add(new DetectionResult(label, score, box));
+    }
+
+    private float clamp(float v, float lo, float hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    private List<DetectionResult> nmsClassAgnostic(List<DetectionResult> dets, float iouTh) {
+        if (dets.isEmpty()) return dets;
+        Collections.sort(dets, (a,b) -> Float.compare(b.confidence, a.confidence));
+        List<DetectionResult> kept = new ArrayList<>();
+        boolean[] removed = new boolean[dets.size()];
+        for (int i = 0; i < dets.size(); i++) {
+            if (removed[i]) continue;
+            DetectionResult di = dets.get(i);
+            kept.add(di);
+            for (int j = i+1; j < dets.size(); j++) {
+                if (removed[j]) continue;
+                if (iou(di.boundingBox, dets.get(j).boundingBox) > iouTh) removed[j]=true;
             }
         }
+        return kept;
+    }
 
-        // Ahora usar FileInputStream real para crear MappedByteBuffer
-        try (FileInputStream fis = new FileInputStream(tempFile);
-             FileChannel fileChannel = fis.getChannel()) {
-            return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, fileChannel.size());
-        }
+    private float iou(RectF a, RectF b) {
+        float ix1 = Math.max(a.left, b.left), iy1 = Math.max(a.top, b.top);
+        float ix2 = Math.min(a.right, b.right), iy2 = Math.min(a.bottom, b.bottom);
+        float iw = Math.max(0, ix2-ix1), ih = Math.max(0, iy2-iy1);
+        float inter = iw*ih;
+        float areaA = Math.max(0,a.width())*Math.max(0,a.height());
+        float areaB = Math.max(0,b.width())*Math.max(0,b.height());
+        float union = areaA+areaB-inter;
+        return union>0? inter/union:0f;
     }
 
     public void close() {
-        Log.d(TAG, "Liberando recursos");
-        if (interpreter != null) {
-            interpreter.close();
-        }
-        if (executorService != null) {
-            executorService.shutdown();
-        }
+        try { interpreter.close(); } catch (Throwable ignore) {}
+        executor.shutdown();
     }
 
     public static class DetectionResult {
         private final String label;
         private final float confidence;
         private final RectF boundingBox;
-
         public DetectionResult(String label, float confidence, RectF boundingBox) {
-            this.label = label;
-            this.confidence = confidence;
-            this.boundingBox = boundingBox;
+            this.label = label; this.confidence = confidence; this.boundingBox = boundingBox;
         }
-
         public String getLabel() { return label; }
         public float getConfidence() { return confidence; }
         public RectF getBoundingBox() { return boundingBox; }
-
+        @NonNull
         @Override
         public String toString() {
-            return String.format("DetectionResult{label='%s', conf=%.2f, box=[%.1f,%.1f,%.1f,%.1f]}",
-                    label, confidence, boundingBox.left, boundingBox.top, boundingBox.right, boundingBox.bottom);
+            return "DetectionResult{" + "label='" + label + '\'' +
+                    ", confidence=" + confidence + ", box=" + boundingBox + '}';
         }
     }
 }
