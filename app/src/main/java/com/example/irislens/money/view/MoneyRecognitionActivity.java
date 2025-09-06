@@ -94,6 +94,10 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
                 mRgba.release();
             }
 
+            /** Procesa cada frame capturado por la camara
+             * @param inputFrame Frame de la camara
+             * @return Mat a mostrar en pantalla (el mismo inputFrame)
+             */
             @Override
             public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
                 // Obtener la imagen en formato RGBA

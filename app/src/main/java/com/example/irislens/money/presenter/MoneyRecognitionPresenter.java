@@ -62,6 +62,7 @@ public class MoneyRecognitionPresenter {
         frameCount++;
         if (frameCount == 10) {
             if (!ttsManager.isSpeaking()) {
+                // Reproducir sonido de captura
                 MediaPlayer mediaPlayer = MediaPlayer.create(activity, R.raw.captura);
                 if (mediaPlayer != null) {
                     mediaPlayer.start();
@@ -197,9 +198,7 @@ public class MoneyRecognitionPresenter {
         return processed;
     }
 
-    /**
-     * Obtiene estadísticas de las detecciones para debugging
-     */
+    /** Obtiene estadisticas de las detecciones para debugging */
     private void logDetectionStats(List<MoneyDetector.DetectionResult> results) {
         if (results.isEmpty()) {
             Log.d(TAG, "Sin detecciones en este frame");
@@ -225,6 +224,7 @@ public class MoneyRecognitionPresenter {
         ));
     }
 
+    /** Liberar recursos al destruir el presenter */
     public void onDestroy() {
         if (ttsManager != null) {
             ttsManager.shutdown();
@@ -239,22 +239,23 @@ public class MoneyRecognitionPresenter {
         }
     }
 
+    /** Detener TTS y limpiar resultado con un doble tap */
     public void onDoubleTap() {
-        if (ttsManager != null && ttsManager.isSpeaking()) {
+        if (ttsManager.isSpeaking()) {
             ttsManager.stop();
             tvResult.setText("");
         }
     }
 
     /**
-     * Getter para el último resultado (útil para testing)
+     * Getter para el ultimo resultado (útil para testing)
      */
     public String getLastResultText() {
         return lastResultText;
     }
 
     /**
-     * Verifica si el presenter está procesando actualmente
+     * Verifica si el presenter esta procesando actualmente
      */
     public boolean isProcessing() {
         return isProcessing;
