@@ -110,7 +110,7 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
                 }
                 // Procesar el frame en el presentador
                 if (presenter != null) {
-                    presenter.onFrame(originalImage);
+                    presenter.processCameraFrame(originalImage);
                 }
                 // Devolver la imagen original para mostrarla en pantalla
                 return originalImage;

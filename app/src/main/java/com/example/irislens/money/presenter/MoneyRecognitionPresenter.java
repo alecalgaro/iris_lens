@@ -10,6 +10,7 @@ import android.util.Log;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.util.Pair;
 
 import com.example.irislens.R;
 import com.example.irislens.common.ImageProcessor;
@@ -56,7 +57,7 @@ public class MoneyRecognitionPresenter {
     /** Procesa un frame de la camara.
      * @param image Frame en formato Mat (OpenCV)
      */
-    public void onFrame(Mat image) {
+    public void processCameraFrame(Mat image) {
         // Evitar procesamiento concurrente
         if (isProcessing) return;
         frameCount++;
@@ -67,6 +68,14 @@ public class MoneyRecognitionPresenter {
                 if (mediaPlayer != null) {
                     mediaPlayer.start();
                     mediaPlayer.setOnCompletionListener(MediaPlayer::release);
+                }
+
+                // Analizar el brillo medio
+                Pair<Mat, Double> processedImageAndBrightness = ImageProcessor.preprocessImage(image);
+                //Mat mRgba = processedImageAndBrightness.first;
+                double meanBrightness = processedImageAndBrightness.second;
+                if (meanBrightness < 10) {
+                    ttsManager.speak("Debe estar en un lugar más iluminado para evitar errores de detección");
                 }
 
                 // Convertir Mat a Bitmap
