@@ -48,6 +48,10 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
     // Encargado de sintetizar voz a partir de texto
     private TextToSpeechManager ttsManager;
 
+    // Variables para detección automática de rotación
+    private int detectedRotation = -1;  // -1 significa no detectado aún
+    private boolean rotationDetected = false;
+
     /**
      * Configura la camara, permisos y procesamiento de imagen
      *
@@ -106,22 +110,130 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
 
             @Override
             public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-                // Obtener la imagen en formato RGBA
-                Mat originalImage = inputFrame.rgba();
+                Mat originalImage = null;
+                try {
+                    // Obtener la imagen en formato RGBA
+                    originalImage = inputFrame.rgba();
 
-                // Rotar la imagen si la orientacion del dispositivo es vertical
-                int rotation = getWindowManager().getDefaultDisplay().getRotation();
-                if (rotation == Surface.ROTATION_0) {
-                    originalImage = com.example.irislens.common.ImageProcessor.rotateImage(originalImage);
+                    if (originalImage == null || originalImage.empty()) {
+                        Log.w("CameraRotation", "Frame vacío recibido");
+                        return originalImage;
+                    }
+
+                    // Detectar automáticamente la rotación correcta en los primeros frames
+                    if (!rotationDetected) {
+                        detectedRotation = detectOptimalRotation(originalImage);
+                        rotationDetected = true;
+                        Log.d("CameraRotation", "Rotación detectada: " + detectedRotation + " grados");
+                    }
+
+                    // Aplicar la rotación detectada
+                    if (detectedRotation > 0) {
+                        Mat rotatedImage = rotateImageSafely(originalImage, detectedRotation);
+                        if (rotatedImage != null && !rotatedImage.empty()) {
+                            originalImage = rotatedImage;
+                        }
+                    }
+
+                    // Procesar el frame en el presentador
+                    if (presenter != null) {
+                        presenter.processCameraFrame(originalImage);
+                    }
+
+                    // Devolver la imagen corregida para mostrarla en pantalla
+                    return originalImage;
+
+                } catch (Exception e) {
+                    Log.e("CameraRotation", "Error en onCameraFrame: " + e.getMessage(), e);
+                    // En caso de error, devolver imagen original o crear una imagen vacía
+                    if (originalImage != null && !originalImage.empty()) {
+                        return originalImage;
+                    } else {
+                        return new Mat(480, 640, CvType.CV_8UC4); // Imagen vacía como fallback
+                    }
                 }
-                // Procesar el frame en el presentador
-                if (presenter != null){
-                    presenter.processCameraFrame(originalImage);
-                }
-                // Devolver la imagen original para mostrarla en pantalla
-                return originalImage;
             }
         });
+    }
+
+    /**
+     * Detecta la rotación óptima basándose en las dimensiones de la imagen y orientación del dispositivo
+     */
+    private int detectOptimalRotation(Mat image) {
+        try {
+            if (image == null || image.empty()) {
+                Log.w("CameraRotation", "Imagen nula o vacía para detección");
+                return 0;
+            }
+
+            int rotation = getWindowManager().getDefaultDisplay().getRotation();
+            int imageWidth = image.cols();
+            int imageHeight = image.rows();
+
+            Log.d("CameraRotation", "Dimensiones imagen: " + imageWidth + "x" + imageHeight);
+            Log.d("CameraRotation", "Rotación dispositivo: " + rotation);
+
+            // Lógica simplificada y más robusta
+            boolean imageIsLandscape = imageWidth > imageHeight;
+            boolean deviceIsPortrait = (rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180);
+
+            if (imageIsLandscape && deviceIsPortrait) {
+                Log.d("CameraRotation", "Detectado: imagen landscape en dispositivo portrait -> rotar 90°");
+                return 90;
+            } else if (!imageIsLandscape && !deviceIsPortrait) {
+                Log.d("CameraRotation", "Detectado: imagen portrait en dispositivo landscape -> rotar 270°");
+                return 270;
+            }
+
+            // Si las orientaciones coinciden, no rotar
+            Log.d("CameraRotation", "Orientaciones coinciden -> sin rotación");
+            return 0;
+
+        } catch (Exception e) {
+            Log.e("CameraRotation", "Error al detectar rotación: " + e.getMessage(), e);
+            return 0; // Sin rotación por defecto si hay error
+        }
+    }
+
+    /**
+     * Rota una imagen de forma segura
+     */
+    private Mat rotateImageSafely(Mat source, int degrees) {
+        if (source == null || source.empty() || degrees == 0) {
+            return source;
+        }
+
+        try {
+            // Normalizar grados a múltiplos de 90
+            degrees = ((degrees % 360) + 360) % 360;
+            Log.d("CameraRotation", "Aplicando rotación de " + degrees + "°");
+
+            Mat rotated = new Mat();
+
+            // Solo usar los métodos más seguros y eficientes
+            if (degrees == 90) {
+                // Rotar 90° en sentido horario
+                org.opencv.core.Core.transpose(source, rotated);
+                org.opencv.core.Core.flip(rotated, rotated, 1);
+                return rotated;
+            } else if (degrees == 180) {
+                // Rotar 180°
+                org.opencv.core.Core.flip(source, rotated, -1);
+                return rotated;
+            } else if (degrees == 270) {
+                // Rotar 270° (o -90°)
+                org.opencv.core.Core.transpose(source, rotated);
+                org.opencv.core.Core.flip(rotated, rotated, 0);
+                return rotated;
+            } else {
+                Log.w("CameraRotation", "Rotación no estándar (" + degrees + "°), sin rotar");
+                return source;
+            }
+
+        } catch (Exception e) {
+            Log.e("CameraRotation", "Error al rotar imagen: " + e.getMessage(), e);
+            return source; // Devolver imagen original si hay error
+        }
     }
 
     /**
@@ -144,6 +256,9 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         if (cameraBridgeViewBase != null) {
             cameraBridgeViewBase.enableView();
         }
+        // Resetear detección de rotación al reanudar
+        rotationDetected = false;
+        detectedRotation = -1;
     }
 
     /**
@@ -155,13 +270,14 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         if (cameraBridgeViewBase != null) {
             cameraBridgeViewBase.disableView();
         }
-        presenter.onDestroy();
+        if (presenter != null) {
+            presenter.onDestroy();
+        }
 
         if (ttsManager != null) {
             ttsManager.shutdown();
         }
     }
-
 
     /**
      * Heredada, cuando detecta doble tap, pausa el audio
