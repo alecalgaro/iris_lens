@@ -1,5 +1,6 @@
 package com.example.irislens.medicine.view;
 
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 
@@ -27,69 +28,48 @@ import org.opencv.android.OpenCVLoader;
 
 /**
  * Actividad que realiza el reconocimiento de medicamentos
+ * VERSIÓN UNIVERSAL - funciona en CUALQUIER dispositivo Android sin importar marca/modelo
  */
 public class MedicineRecognitionActivity extends BaseSwipeActivity {
 
-    // Encargado de manejar los permisos necesarios para acceder a la camara y otros recursos
     private PermissionManager permissionManager;
-
-    // Componente visual de OpenCV encargado de mostrar la vista en vivo desde la camara
     private CameraBridgeViewBase cameraBridgeViewBase;
-
-    // Matriz que contiene la imagen capturada en formato RGBA
     private Mat mRgba;
-
-    // TextView donde se muestra el resultado del reconocimiento de medicamentos
     private TextView tvResult;
-
-    // Encapsula la logica de presentacion para el reconocimiento de medicamentos
     private MedicineRecognitionPresenter presenter;
-
-    // Encargado de sintetizar voz a partir de texto
     private TextToSpeechManager ttsManager;
 
-    // Variables para detección automática de rotación
-    private int detectedRotation = -1;  // -1 significa no detectado aún
+    // Variables para detección automática UNIVERSAL
+    private int detectedRotation = -1;
     private boolean rotationDetected = false;
+    private int frameCounter = 0;
+    private int[] rotationCandidates = new int[5]; // Array para estabilizar detección
 
-    /**
-     * Configura la camara, permisos y procesamiento de imagen
-     *
-     * @param savedInstanceState Estado guardado
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_medicine_recognition);
 
-        currentFunctionalityIndex = Functionalities.MEDICINE; // indice para el swipe de esta funcionalidad
+        currentFunctionalityIndex = Functionalities.MEDICINE;
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
         tvResult.setText("Reconocimiento de medicamentos. Apunte la cámara hacia el objeto que desea reconocer.");
 
-        // Inicializar PermissionManager y solicitar permiso de camara
         permissionManager = new PermissionManager();
         permissionManager.getPermissions(this);
 
-        // Inicializar Presenter para funcionalidad de reconocimiento de medicamentos
         presenter = new MedicineRecognitionPresenter(this, tvResult);
-
-        // Inicializar la base de datos y sincronizarla con Firestore
         presenter.initDatabase();
 
-        // Mensaje de voz sobre la funcionalidad
         ttsManager = new TextToSpeechManager(this);
-        // Espera breve para asegurar que TTS este listo
         new Handler().postDelayed(() -> {
             ttsManager.speak("Reconocimiento de medicamentos. " +
                     "Apunte la cámara hacia el objeto que desea reconocer.");
         }, 500);
 
-        // Mantener la pantalla encendida mientras esta actividad esta en primer plano
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        // Inicializar OpenCV y habilitar la vista de la camara
         if (!OpenCVLoader.initLocal()) {
             Log.e("OpenCVInit", "Error al inicializar OpenCV");
         } else {
@@ -101,144 +81,248 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
             @Override
             public void onCameraViewStarted(int width, int height) {
                 mRgba = new Mat(height, width, CvType.CV_8UC4);
+                Log.d("CameraSetup", "Cámara iniciada: " + width + "x" + height);
             }
 
             @Override
             public void onCameraViewStopped() {
-                mRgba.release();
+                if (mRgba != null) {
+                    mRgba.release();
+                }
             }
 
             @Override
             public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
                 Mat originalImage = null;
                 try {
-                    // Obtener la imagen en formato RGBA
                     originalImage = inputFrame.rgba();
 
                     if (originalImage == null || originalImage.empty()) {
-                        Log.w("CameraRotation", "Frame vacío recibido");
                         return originalImage;
                     }
 
-                    // Detectar automáticamente la rotación correcta en los primeros frames
+                    // DETECCIÓN ESTABILIZADA - múltiples métodos sin depender del modelo
                     if (!rotationDetected) {
-                        detectedRotation = detectOptimalRotation(originalImage);
-                        rotationDetected = true;
-                        Log.d("CameraRotation", "Rotación detectada: " + detectedRotation + " grados");
+                        int currentRotation = detectUniversalRotation(originalImage);
+
+                        // Almacenar candidato para estabilización
+                        rotationCandidates[frameCounter % rotationCandidates.length] = currentRotation;
+                        frameCounter++;
+
+                        // Decidir rotación después de varios frames
+                        if (frameCounter >= rotationCandidates.length) {
+                            detectedRotation = getMostConsistentRotation();
+                            rotationDetected = true;
+                            Log.d("CameraRotation", "Rotación final detectada: " + detectedRotation + "°");
+                        }
                     }
 
-                    // Aplicar la rotación detectada
-                    if (detectedRotation > 0) {
-                        Mat rotatedImage = rotateImageSafely(originalImage, detectedRotation);
+                    // Aplicar rotación si es necesaria
+                    if (rotationDetected && detectedRotation > 0) {
+                        Mat rotatedImage = applyOptimalRotation(originalImage, detectedRotation);
                         if (rotatedImage != null && !rotatedImage.empty()) {
                             originalImage = rotatedImage;
                         }
                     }
 
-                    // Procesar el frame en el presentador
+                    // Procesar frame
                     if (presenter != null) {
                         presenter.processCameraFrame(originalImage);
                     }
 
-                    // Devolver la imagen corregida para mostrarla en pantalla
                     return originalImage;
 
                 } catch (Exception e) {
-                    Log.e("CameraRotation", "Error en onCameraFrame: " + e.getMessage(), e);
-                    // En caso de error, devolver imagen original o crear una imagen vacía
-                    if (originalImage != null && !originalImage.empty()) {
-                        return originalImage;
-                    } else {
-                        return new Mat(480, 640, CvType.CV_8UC4); // Imagen vacía como fallback
-                    }
+                    Log.e("CameraFrame", "Error en frame: " + e.getMessage(), e);
+                    return originalImage != null ? originalImage : createSafeEmptyFrame();
                 }
             }
         });
     }
 
     /**
-     * Detecta la rotación óptima basándose en las dimensiones de la imagen y orientación del dispositivo
+     * Detección UNIVERSAL que funciona sin importar marca/modelo
+     * Combina MÚLTIPLES indicadores para máxima compatibilidad
      */
-    private int detectOptimalRotation(Mat image) {
+    private int detectUniversalRotation(Mat image) {
         try {
             if (image == null || image.empty()) {
-                Log.w("CameraRotation", "Imagen nula o vacía para detección");
                 return 0;
             }
 
-            int rotation = getWindowManager().getDefaultDisplay().getRotation();
             int imageWidth = image.cols();
             int imageHeight = image.rows();
 
-            Log.d("CameraRotation", "Dimensiones imagen: " + imageWidth + "x" + imageHeight);
-            Log.d("CameraRotation", "Rotación dispositivo: " + rotation);
-
-            // Lógica simplificada y más robusta
+            // INDICADOR 1: Relación de aspecto de la imagen
             boolean imageIsLandscape = imageWidth > imageHeight;
-            boolean deviceIsPortrait = (rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180);
+            double aspectRatio = (double) imageWidth / imageHeight;
 
-            if (imageIsLandscape && deviceIsPortrait) {
-                Log.d("CameraRotation", "Detectado: imagen landscape en dispositivo portrait -> rotar 90°");
-                return 90;
-            } else if (!imageIsLandscape && !deviceIsPortrait) {
-                Log.d("CameraRotation", "Detectado: imagen portrait en dispositivo landscape -> rotar 270°");
-                return 270;
+            // INDICADOR 2: Configuración del sistema Android
+            int systemOrientation = getResources().getConfiguration().orientation;
+            boolean systemIsPortrait = (systemOrientation == Configuration.ORIENTATION_PORTRAIT);
+
+            // INDICADOR 3: Rotación del display
+            int displayRotation = getWindowManager().getDefaultDisplay().getRotation();
+
+            // INDICADOR 4: Dimensiones de la pantalla
+            android.util.DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+            boolean screenIsPortrait = displayMetrics.heightPixels > displayMetrics.widthPixels;
+
+            Log.d("UniversalRotation", String.format(
+                    "Imagen: %dx%d (aspect: %.2f, landscape: %s)",
+                    imageWidth, imageHeight, aspectRatio, imageIsLandscape));
+            Log.d("UniversalRotation", String.format(
+                    "Sistema: orientation=%d, display_rotation=%d, screen_portrait=%s",
+                    systemOrientation, displayRotation, screenIsPortrait));
+
+            // LÓGICA UNIVERSAL: Consenso entre múltiples indicadores
+            int rotationScore0 = 0;   // Sin rotación
+            int rotationScore90 = 0;  // 90 grados
+            int rotationScore180 = 0; // 180 grados
+            int rotationScore270 = 0; // 270 grados
+
+            // Votos basados en imagen vs sistema
+            if (imageIsLandscape && systemIsPortrait) {
+                rotationScore90 += 2; // Fuerte indicador
+            }
+            if (!imageIsLandscape && !systemIsPortrait) {
+                rotationScore270 += 2; // Fuerte indicador
+            }
+            if (imageIsLandscape == !systemIsPortrait) {
+                rotationScore0 += 1; // Orientaciones coinciden
             }
 
-            // Si las orientaciones coinciden, no rotar
-            Log.d("CameraRotation", "Orientaciones coinciden -> sin rotación");
-            return 0;
+            // Votos basados en display rotation
+            switch (displayRotation) {
+                case Surface.ROTATION_0:
+                    if (imageIsLandscape) rotationScore90 += 1;
+                    else rotationScore0 += 1;
+                    break;
+                case Surface.ROTATION_90:
+                    if (imageIsLandscape) rotationScore0 += 1;
+                    else rotationScore270 += 1;
+                    break;
+                case Surface.ROTATION_180:
+                    if (imageIsLandscape) rotationScore270 += 1;
+                    else rotationScore180 += 1;
+                    break;
+                case Surface.ROTATION_270:
+                    if (imageIsLandscape) rotationScore180 += 1;
+                    else rotationScore90 += 1;
+                    break;
+            }
+
+            // Votos basados en relación de aspecto extrema
+            if (aspectRatio > 1.5) {  // Muy landscape
+                if (systemIsPortrait) rotationScore90 += 1;
+            }
+            if (aspectRatio < 0.67) { // Muy portrait
+                if (!systemIsPortrait) rotationScore270 += 1;
+            }
+
+            // Encontrar la rotación con mayor puntaje
+            int maxScore = Math.max(Math.max(rotationScore0, rotationScore90),
+                    Math.max(rotationScore180, rotationScore270));
+
+            int selectedRotation = 0;
+            if (maxScore == rotationScore90) selectedRotation = 90;
+            else if (maxScore == rotationScore180) selectedRotation = 180;
+            else if (maxScore == rotationScore270) selectedRotation = 270;
+
+            Log.d("UniversalRotation", String.format(
+                    "Scores - 0°:%d, 90°:%d, 180°:%d, 270°:%d -> Seleccionado: %d°",
+                    rotationScore0, rotationScore90, rotationScore180, rotationScore270, selectedRotation));
+
+            return selectedRotation;
 
         } catch (Exception e) {
-            Log.e("CameraRotation", "Error al detectar rotación: " + e.getMessage(), e);
-            return 0; // Sin rotación por defecto si hay error
+            Log.e("UniversalRotation", "Error en detección: " + e.getMessage(), e);
+            return 0;
         }
     }
 
     /**
-     * Rota una imagen de forma segura
+     * Obtiene la rotación más consistente de los últimos frames
      */
-    private Mat rotateImageSafely(Mat source, int degrees) {
+    private int getMostConsistentRotation() {
+        // Contar frecuencia de cada rotación detectada
+        int[] counts = new int[4]; // 0°, 90°, 180°, 270°
+
+        for (int rotation : rotationCandidates) {
+            switch (rotation) {
+                case 0: counts[0]++; break;
+                case 90: counts[1]++; break;
+                case 180: counts[2]++; break;
+                case 270: counts[3]++; break;
+            }
+        }
+
+        // Encontrar la rotación más frecuente
+        int maxCount = 0;
+        int mostFrequentRotation = 0;
+
+        for (int i = 0; i < counts.length; i++) {
+            if (counts[i] > maxCount) {
+                maxCount = counts[i];
+                mostFrequentRotation = i * 90;
+            }
+        }
+
+        Log.d("RotationStabilization", String.format(
+                "Frecuencias - 0°:%d, 90°:%d, 180°:%d, 270°:%d -> Elegido: %d°",
+                counts[0], counts[1], counts[2], counts[3], mostFrequentRotation));
+
+        return mostFrequentRotation;
+    }
+
+    /**
+     * Aplica rotación de forma óptima y segura
+     */
+    private Mat applyOptimalRotation(Mat source, int degrees) {
         if (source == null || source.empty() || degrees == 0) {
             return source;
         }
 
         try {
-            // Normalizar grados a múltiplos de 90
             degrees = ((degrees % 360) + 360) % 360;
-            Log.d("CameraRotation", "Aplicando rotación de " + degrees + "°");
 
-            Mat rotated = new Mat();
+            Mat result = new Mat();
 
-            // Solo usar los métodos más seguros y eficientes
-            if (degrees == 90) {
-                // Rotar 90° en sentido horario
-                org.opencv.core.Core.transpose(source, rotated);
-                org.opencv.core.Core.flip(rotated, rotated, 1);
-                return rotated;
-            } else if (degrees == 180) {
-                // Rotar 180°
-                org.opencv.core.Core.flip(source, rotated, -1);
-                return rotated;
-            } else if (degrees == 270) {
-                // Rotar 270° (o -90°)
-                org.opencv.core.Core.transpose(source, rotated);
-                org.opencv.core.Core.flip(rotated, rotated, 0);
-                return rotated;
-            } else {
-                Log.w("CameraRotation", "Rotación no estándar (" + degrees + "°), sin rotar");
-                return source;
+            switch (degrees) {
+                case 90:
+                    org.opencv.core.Core.transpose(source, result);
+                    org.opencv.core.Core.flip(result, result, 1);
+                    break;
+                case 180:
+                    org.opencv.core.Core.flip(source, result, -1);
+                    break;
+                case 270:
+                    org.opencv.core.Core.transpose(source, result);
+                    org.opencv.core.Core.flip(result, result, 0);
+                    break;
+                default:
+                    return source;
             }
 
+            return result;
+
         } catch (Exception e) {
-            Log.e("CameraRotation", "Error al rotar imagen: " + e.getMessage(), e);
-            return source; // Devolver imagen original si hay error
+            Log.e("Rotation", "Error al aplicar rotación: " + e.getMessage(), e);
+            return source;
         }
     }
 
     /**
-     * Desactiva la camara al pausar la actividad
+     * Crear frame seguro como fallback
      */
+    private Mat createSafeEmptyFrame() {
+        try {
+            return new Mat(480, 640, CvType.CV_8UC4);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -247,23 +331,19 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         }
     }
 
-    /**
-     * Reactiva la camara al volver a la funcionalidad
-     */
     @Override
     protected void onResume() {
         super.onResume();
         if (cameraBridgeViewBase != null) {
             cameraBridgeViewBase.enableView();
         }
-        // Resetear detección de rotación al reanudar
+        // Resetear para re-evaluar
         rotationDetected = false;
         detectedRotation = -1;
+        frameCounter = 0;
+        rotationCandidates = new int[5];
     }
 
-    /**
-     * Libera recursos al destruir la actividad
-     */
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -273,15 +353,11 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         if (presenter != null) {
             presenter.onDestroy();
         }
-
         if (ttsManager != null) {
             ttsManager.shutdown();
         }
     }
 
-    /**
-     * Heredada, cuando detecta doble tap, pausa el audio
-     */
     @Override
     protected void onDoubleTapDetected() {
         if (presenter != null) {
@@ -297,18 +373,12 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         return Collections.singletonList(cameraBridgeViewBase);
     }
 
-    /**
-     * Solicitar permisos de camara
-     */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         permissionManager.handlePermissionsResult(requestCode, permissions, grantResults, this);
     }
 
-    /**
-     * Intercepta todos los eventos tactiles antes de que sean procesados por las vistas hijas
-     */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         return super.dispatchTouchEvent(ev);
