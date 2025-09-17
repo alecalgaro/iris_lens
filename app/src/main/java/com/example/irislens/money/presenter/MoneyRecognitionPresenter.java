@@ -61,7 +61,7 @@ public class MoneyRecognitionPresenter {
         // Evitar procesamiento concurrente
         if (isProcessing) return;
         frameCount++;
-        if (frameCount == 10) {
+        if (frameCount == 5) {
             if (!ttsManager.isSpeaking()) {
                 // Reproducir sonido de captura
                 MediaPlayer mediaPlayer = MediaPlayer.create(activity, R.raw.captura);
@@ -71,12 +71,12 @@ public class MoneyRecognitionPresenter {
                 }
 
                 // Analizar el brillo medio
-                Pair<Mat, Double> processedImageAndBrightness = ImageProcessor.preprocessImage(image);
+                //Pair<Mat, Double> processedImageAndBrightness = ImageProcessor.preprocessImage(image);
                 //Mat mRgba = processedImageAndBrightness.first;
-                double meanBrightness = processedImageAndBrightness.second;
-                if (meanBrightness < 10) {
-                    ttsManager.speak("Debe estar en un lugar más iluminado para evitar errores de detección");
-                }
+                //double meanBrightness = processedImageAndBrightness.second;
+                //if (meanBrightness < 10) {
+                //    ttsManager.speak("Debe estar en un lugar más iluminado para evitar errores de detección");
+                //}
 
                 // Convertir Mat a Bitmap
                 Bitmap bitmap = ImageProcessor.convertToBitmap(image);

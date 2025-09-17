@@ -31,7 +31,7 @@ public class MoneyDetector {
     private static final String MODEL_PATH = "detector.tflite";
     private static final String LABELS_PATH = "labels.txt";
 
-    private static final float CONF_THRESHOLD = 0.25f; // ajustar si no detecta
+    private static final float CONF_THRESHOLD = 0.85f; // umbral de confianza minimo
     private static final float NMS_IOU_THRESHOLD = 0.5f;
     private static final int INPUT_SIZE = 640;
 
