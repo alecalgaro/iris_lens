@@ -70,6 +70,7 @@ public class MoneyRecognitionPresenter {
                     mediaPlayer.setOnCompletionListener(MediaPlayer::release);
                 }
 
+                // APLICAR SOLO ESCALA DE GRISES Y CALCULAR BRILLO PERO SEGUIR USANDO LA IMAGEN ORIGINAL EN EL RESTO DEL PROCESO
                 // Analizar el brillo medio
                 //Pair<Mat, Double> processedImageAndBrightness = ImageProcessor.preprocessImage(image);
                 //Mat mRgba = processedImageAndBrightness.first;
@@ -77,6 +78,7 @@ public class MoneyRecognitionPresenter {
                 //if (meanBrightness < 10) {
                 //    ttsManager.speak("Debe estar en un lugar más iluminado para evitar errores de detección");
                 //}
+                // Recordar agregar un if si el brillo medio es muy alto para indicar que hay demasiada luz
 
                 // Convertir Mat a Bitmap
                 Bitmap bitmap = ImageProcessor.convertToBitmap(image);
