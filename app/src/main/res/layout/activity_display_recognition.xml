@@ -1,17 +1,54 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/root_container"
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- Vista de la cámara -->
+    <org.opencv.android.JavaCameraView
+        android:id="@+id/camera_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- NUEVO: Vista de debug para imagen preprocesada -->
+    <ImageView
+        android:id="@+id/ivDebugPreview"
+        android:layout_width="300dp"
+        android:layout_height="200dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
+        android:alpha="0"
+        android:background="#CC000000"
+        android:padding="8dp"
+        android:scaleType="fitCenter"
+        android:contentDescription="Vista previa preprocesada" />
+
+    <!-- Texto informativo superior -->
+    <TextView
+        android:id="@+id/tvInfo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:background="#80000000"
+        android:padding="8dp"
+        android:text="Modo DEBUG: Se mostrará imagen preprocesada"
+        android:textColor="@android:color/holo_orange_light"
+        android:textSize="12sp" />
+
+    <!-- Resultado de la detección -->
     <TextView
         android:id="@+id/tvResult"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="Reconocimiento de displays (disponible próximamente)."
-        android:textSize="24sp"
-        android:textColor="#FAFAFA"
-        android:importantForAccessibility="yes"
-        android:focusable="true"
-        android:contentDescription="Reconocimiento de displays (disponible próximamente)." />
-</FrameLayout>
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="50dp"
+        android:background="#CC000000"
+        android:padding="16dp"
+        android:text=""
+        android:textColor="@android:color/white"
+        android:textSize="32sp"
+        android:textStyle="bold" />
+
+</RelativeLayout>

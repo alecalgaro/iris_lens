@@ -1,51 +1,165 @@
 package com.example.irislens.display.view;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.view.Surface;
+import android.view.WindowManager;
+import android.view.MotionEvent;
+import android.util.Log;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+
 import com.example.irislens.R;
+import com.example.irislens.common.TextToSpeechManager;
+import com.example.irislens.display.presenter.DisplayRecognitionPresenter;
 import com.example.irislens.common.BaseSwipeActivity;
 import com.example.irislens.common.Functionalities;
-import android.os.Handler;
-import android.os.Looper;
-import com.example.irislens.common.TextToSpeechManager;
+import com.example.irislens.common.PermissionManager;
 
+import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
 
-/**
- * Actividad que realiza el reconocimiento de displays
- */
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
 public class DisplayRecognitionActivity extends BaseSwipeActivity {
+    private static final String TAG = "DisplayActivity";
 
-    // Encargado de sintetizar voz a partir de texto
+    private PermissionManager permissionManager;
+    private CameraBridgeViewBase cameraBridgeViewBase;
+    private Mat mRgba;
+    private TextView tvResult;
+    private ImageView ivDebugPreview; // NUEVO
+    private DisplayRecognitionPresenter presenter;
     private TextToSpeechManager ttsManager;
 
-    /**
-     * Configura la interfaz de reconocimiento de displays
-     *
-     * @param savedInstanceState Estado guardado
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display_recognition);
-        currentFunctionalityIndex = Functionalities.DISPLAY; // indice para el swipe de esta funcionalidad
 
-        // Mensaje de voz sobre la funcionalidad
-        ttsManager = new TextToSpeechManager(this, () -> {
-            ttsManager.speak("Reconocimiento de displays. Disponible próximamente.");
+        currentFunctionalityIndex = Functionalities.DISPLAY;
+
+        cameraBridgeViewBase = findViewById(R.id.camera_view);
+        tvResult = findViewById(R.id.tvResult);
+        ivDebugPreview = findViewById(R.id.ivDebugPreview); // NUEVO
+
+        tvResult.setText("Modo DEBUG: Reconocimiento de displays numéricos");
+
+        permissionManager = new PermissionManager();
+        permissionManager.getPermissions(this);
+
+        try {
+            presenter = new DisplayRecognitionPresenter(this, tvResult, ivDebugPreview);
+        } catch (IOException e) {
+            Log.e(TAG, "Error cargando el modelo de displays TensorFlow Lite", e);
+            tvResult.setText("Error cargando el modelo de displays: " + e.getMessage());
+
+            if (e.getMessage() != null) {
+                if (e.getMessage().contains("assets")) {
+                    Log.e(TAG, "Error relacionado con assets - verificar que los archivos .tflite y labels.txt estén en assets/");
+                } else if (e.getMessage().contains("model")) {
+                    Log.e(TAG, "Error del modelo - verificar formato TensorFlow Lite");
+                }
+            }
+        }
+
+        ttsManager = new TextToSpeechManager(this);
+        new Handler().postDelayed(() -> {
+            ttsManager.speak("Modo de depuración activado. " +
+                    "Reconocimiento de displays numéricos. " +
+                    "Se mostrará la imagen preprocesada durante 2 segundos.");
+        }, 500);
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        if (!OpenCVLoader.initLocal()) {
+            Log.e("OpenCVInit", "Error al inicializar OpenCV");
+        } else {
+            cameraBridgeViewBase.enableView();
+        }
+
+        cameraBridgeViewBase.setCvCameraViewListener(new CameraBridgeViewBase.CvCameraViewListener2() {
+            @Override
+            public void onCameraViewStarted(int width, int height) {
+                mRgba = new Mat(height, width, CvType.CV_8UC4);
+            }
+
+            @Override
+            public void onCameraViewStopped() {
+                mRgba.release();
+            }
+
+            @Override
+            public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+                Mat originalImage = inputFrame.rgba();
+
+                int rotation = getWindowManager().getDefaultDisplay().getRotation();
+                if (rotation == Surface.ROTATION_0) {
+                    originalImage = com.example.irislens.common.ImageProcessor.rotateImage(originalImage);
+                }
+
+                if (presenter != null) {
+                    presenter.processCameraFrame(originalImage);
+                }
+
+                return originalImage;
+            }
         });
     }
 
     @Override
-    protected void onDoubleTapDetected() {
-        if (ttsManager != null) {
-            ttsManager.stop();
-        }
+    protected void onPause() {
+        super.onPause();
+        if (cameraBridgeViewBase != null) cameraBridgeViewBase.disableView();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (cameraBridgeViewBase != null) cameraBridgeViewBase.enableView();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        if (cameraBridgeViewBase != null) {
+            cameraBridgeViewBase.disableView();
+        }
+
+        if (presenter != null) {
+            presenter.onDestroy();
+        }
+
         if (ttsManager != null) {
             ttsManager.shutdown();
         }
+    }
+
+    @Override
+    protected void onDoubleTapDetected() {
+        if (presenter != null) presenter.onDoubleTap();
+    }
+
+    @Override
+    protected List<? extends CameraBridgeViewBase> getCameraViewList() {
+        return Collections.singletonList(cameraBridgeViewBase);
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        permissionManager.handlePermissionsResult(requestCode, permissions, grantResults, this);
     }
 }
