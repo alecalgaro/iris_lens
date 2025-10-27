@@ -24,31 +24,31 @@ import java.util.concurrent.Executors;
 
 /**
  * DisplayDetector: Detector de dígitos en displays usando TensorFlow Lite.
- * Modelo basado en YOLOv8n con preprocesamiento optimizado para displays LED de colores.
+ * Modelo basado en YOLOv8n con preprocesamiento ADAPTATIVO SECUENCIAL:
+ *
+ * ESTRATEGIA AUTOMÁTICA:
+ * 1. Intenta primero con IMAGEN ORIGINAL EN COLOR - sin preprocesamiento
+ * 2. Si no detecta nada, reintenta con INVERSIÓN - para LEDs brillantes
+ *
+ * Esto asegura detección robusta sin necesidad de análisis previo complejo.
  */
 public class DisplayDetector {
     private static final String TAG = "DisplayDetector";
     private static final String MODEL_PATH = "detectorDisplay.tflite";
     private static final String LABELS_PATH = "labelsDisplay.txt";
 
-    private static final float CONF_THRESHOLD = 0.55f; // Umbral más bajo para testing
+    private static final float CONF_THRESHOLD = 0.55f;
     private static final float NMS_IOU_THRESHOLD = 0.5f;
     private static final int INPUT_SIZE = 640;
 
-    // ============ CONFIGURACIÓN DEBUG ============
-    // DEBUG: Activar para ver imagen preprocesada en pantalla
-    public static final boolean DEBUG_SHOW_PREPROCESSED = false;  // Cambiar a false para desactivar
-
-    // AUTO: Selección automática de estrategia de preprocesamiento
-    public static final boolean AUTO_STRATEGY = true;  // Mantener en true para modo inteligente
-    // ============================================
+    // DEBUG: Activar para ver imagen preprocesada
+    public static final boolean DEBUG_SHOW_PREPROCESSED = true;
 
     private final Interpreter interpreter;
     private final List<String> labels;
     private final int numClasses;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    // Callback para previsualización de debug
     private PreprocessDebugCallback debugCallback;
 
     public interface DetectionCallback {
@@ -95,37 +95,73 @@ public class DisplayDetector {
     private List<DetectionResult> detectInternal(@NonNull Bitmap bitmap) {
         long t0 = System.currentTimeMillis();
 
-        // PREPROCESAR con selección automática de estrategia
-        Bitmap preprocessedBitmap;
-        int selectedStrategy;
+        // ====================================================================
+        // ESTRATEGIA ADAPTATIVA SECUENCIAL
+        // ====================================================================
 
-        if (AUTO_STRATEGY) {
-            // Analizar la imagen para decidir la estrategia
-            selectedStrategy = selectBestStrategy(bitmap);
-            Log.d(TAG, "🤖 Modo AUTO: Estrategia seleccionada = " + selectedStrategy);
-        } else {
-            selectedStrategy = 1; // Fallback manual si se desactiva AUTO
-        }
+        Log.d(TAG, "🔍 Estrategia 1: IMAGEN ORIGINAL (sin preprocesamiento)");
 
-        // Aplicar la estrategia seleccionada
-        switch (selectedStrategy) {
-            case 2:
-                preprocessedBitmap = invertImagePreprocessing(bitmap);
-                break;
-            case 1:
-            default:
-                preprocessedBitmap = normalizeDisplayColors(bitmap);
-                break;
-        }
+        // INTENTO 1: Imagen original tal como llega, en color
+        long tPreprocess1 = System.currentTimeMillis();
+        Log.d(TAG, "⏱️ Preprocesamiento estrategia 1: " + (tPreprocess1 - t0) + " ms (sin preprocesamiento)");
 
-        long tPreprocess = System.currentTimeMillis();
-        Log.d(TAG, "⏱️ Preprocesamiento (estrategia " + selectedStrategy + "): " + (tPreprocess - t0) + " ms");
-
-        // DEBUG: Enviar imagen preprocesada para visualización
+        // DEBUG: Mostrar imagen original
         if (DEBUG_SHOW_PREPROCESSED && debugCallback != null) {
-            debugCallback.onPreprocessedImage(preprocessedBitmap);
+            debugCallback.onPreprocessedImage(bitmap);
         }
 
+        // Ejecutar inferencia con imagen original
+        List<DetectionResult> results1 = runInference(bitmap, bitmap.getWidth(), bitmap.getHeight());
+        long tInference1 = System.currentTimeMillis();
+        Log.d(TAG, "⏱️ Inferencia estrategia 1: " + (tInference1 - tPreprocess1) + " ms");
+        Log.d(TAG, "📊 Detecciones estrategia 1: " + results1.size());
+
+        // Si encontramos detecciones, retornar inmediatamente
+        if (!results1.isEmpty()) {
+            long dt = System.currentTimeMillis() - t0;
+            Log.d(TAG, "✅ ÉXITO con estrategia 1 (imagen original) | Total: " + dt + " ms | detecciones=" + results1.size());
+            return results1;
+        }
+
+        // ====================================================================
+        // Si estrategia 1 falló (0 detecciones), intentar estrategia 2
+        // ====================================================================
+
+        Log.d(TAG, "⚠️ Estrategia 1 sin resultados, intentando estrategia 2...");
+        Log.d(TAG, "🔍 Estrategia 2: INVERSIÓN (LED/segmentos brillantes)");
+
+        // INTENTO 2: Inversión de imagen (para LEDs brillantes sobre fondo oscuro)
+        Bitmap preprocessed2 = invertImagePreprocessing(bitmap);
+        long tPreprocess2 = System.currentTimeMillis();
+        Log.d(TAG, "⏱️ Preprocesamiento estrategia 2: " + (tPreprocess2 - tInference1) + " ms");
+
+        // DEBUG: Mostrar segunda estrategia
+        if (DEBUG_SHOW_PREPROCESSED && debugCallback != null) {
+            debugCallback.onPreprocessedImage(preprocessed2);
+        }
+
+        // Ejecutar inferencia con estrategia 2
+        List<DetectionResult> results2 = runInference(preprocessed2, bitmap.getWidth(), bitmap.getHeight());
+        long tInference2 = System.currentTimeMillis();
+        Log.d(TAG, "⏱️ Inferencia estrategia 2: " + (tInference2 - tPreprocess2) + " ms");
+        Log.d(TAG, "📊 Detecciones estrategia 2: " + results2.size());
+
+        long dt = System.currentTimeMillis() - t0;
+
+        if (!results2.isEmpty()) {
+            Log.d(TAG, "✅ ÉXITO con estrategia 2 | Total: " + dt + " ms | detecciones=" + results2.size());
+            return results2;
+        } else {
+            Log.d(TAG, "⚠️ Ninguna estrategia detectó dígitos | Total: " + dt + " ms");
+            return results2; // Retornar lista vacía
+        }
+    }
+
+    /**
+     * Ejecuta la inferencia TFLite sobre una imagen preprocesada.
+     * Método extraído para reutilizar en ambas estrategias.
+     */
+    private List<DetectionResult> runInference(@NonNull Bitmap preprocessedBitmap, int origW, int origH) {
         ByteBuffer input = preprocess(preprocessedBitmap);
 
         int[] outShape = interpreter.getOutputTensor(0).shape();
@@ -134,8 +170,6 @@ public class DisplayDetector {
 
         float[][][] raw = new float[outShape[0]][outShape[1]][outShape[2]];
         interpreter.run(input, raw);
-        long tInference = System.currentTimeMillis();
-        Log.d(TAG, "⏱️ Inferencia TFLite: " + (tInference - tPreprocess) + " ms");
 
         int channels = 4 + numClasses;
         boolean layoutCFirst;
@@ -144,163 +178,15 @@ public class DisplayDetector {
         else layoutCFirst = (outShape[1] > outShape[2] && outShape[1] >= channels);
 
         List<DetectionResult> preNms = layoutCFirst
-                ? parsePreds_CFirst(raw[0], bitmap.getWidth(), bitmap.getHeight())
-                : parsePreds_PFirst(raw[0], bitmap.getWidth(), bitmap.getHeight());
+                ? parsePreds_CFirst(raw[0], origW, origH)
+                : parsePreds_PFirst(raw[0], origW, origH);
 
-        List<DetectionResult> finalDetections = nmsClassAgnostic(preNms, NMS_IOU_THRESHOLD);
-
-        long dt = System.currentTimeMillis() - t0;
-        Log.d(TAG, "⏱️ TOTAL: " + dt + " ms | detecciones=" + finalDetections.size());
-
-        return finalDetections;
+        return nmsClassAgnostic(preNms, NMS_IOU_THRESHOLD);
     }
 
     /**
-     * SELECTOR INTELIGENTE: Analiza la imagen y decide automáticamente qué estrategia usar.
-     *
-     * Criterios de decisión:
-     * - Estrategia 2 (inversión): LEDs muy brillantes sobre fondo oscuro
-     * - Estrategia 1 (normalización): Displays normales o con contraste moderado
-     *
-     * @param bitmap Imagen a analizar
-     * @return 1 o 2 según la estrategia recomendada
-     */
-    private int selectBestStrategy(@NonNull Bitmap bitmap) {
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-
-        // Muestrear la imagen (cada 4 píxeles para velocidad)
-        int sampleStep = 4;
-        int sampleCount = 0;
-
-        int brightPixelCount = 0;      // Píxeles muy brillantes (>200)
-        int veryBrightPixelCount = 0;  // Píxeles extremadamente brillantes (>230)
-        int darkPixelCount = 0;         // Píxeles oscuros (<50)
-        long totalBrightness = 0;
-
-        for (int y = 0; y < height; y += sampleStep) {
-            for (int x = 0; x < width; x += sampleStep) {
-                int pixel = bitmap.getPixel(x, y);
-                int r = (pixel >> 16) & 0xFF;
-                int g = (pixel >> 8) & 0xFF;
-                int b = pixel & 0xFF;
-
-                // Calcular brillo máximo (importante para LEDs de color)
-                int maxChannel = Math.max(r, Math.max(g, b));
-                totalBrightness += maxChannel;
-
-                if (maxChannel > 230) veryBrightPixelCount++;
-                if (maxChannel > 200) brightPixelCount++;
-                if (maxChannel < 50) darkPixelCount++;
-
-                sampleCount++;
-            }
-        }
-
-        float avgBrightness = (float) totalBrightness / sampleCount;
-        float brightRatio = (float) brightPixelCount / sampleCount;
-        float veryBrightRatio = (float) veryBrightPixelCount / sampleCount;
-        float darkRatio = (float) darkPixelCount / sampleCount;
-
-        Log.d(TAG, String.format("📊 Análisis AUTO: brillo_avg=%.1f | brillantes=%.1f%% | muy_brillantes=%.1f%% | oscuros=%.1f%%",
-                avgBrightness, brightRatio * 100, veryBrightRatio * 100, darkRatio * 100));
-
-        // CRITERIOS DE DECISIÓN:
-
-        // Caso 1: LEDs MUY brillantes sobre fondo oscuro → INVERTIR
-        // Características: Muchos píxeles muy brillantes + muchos píxeles oscuros
-        if (veryBrightRatio > 0.10f && darkRatio > 0.30f) {
-            Log.d(TAG, "✓ Detectado: LEDs muy brillantes sobre fondo oscuro → Estrategia 2 (Inversión)");
-            return 2;
-        }
-
-        // Caso 2: Brillo promedio muy alto con contraste alto → INVERTIR
-        // Características: Display muy brillante con zonas oscuras marcadas
-        if (avgBrightness > 150 && brightRatio > 0.20f && darkRatio > 0.25f) {
-            Log.d(TAG, "✓ Detectado: Display brillante con alto contraste → Estrategia 2 (Inversión)");
-            return 2;
-        }
-
-        // Caso 3: LEDs saturados (blancos puros) → INVERTIR
-        // Características: Muchos píxeles extremadamente brillantes
-        if (veryBrightRatio > 0.15f) {
-            Log.d(TAG, "✓ Detectado: LEDs saturados/blancos → Estrategia 2 (Inversión)");
-            return 2;
-        }
-
-        // Caso DEFAULT: Display normal o moderado → NORMALIZACIÓN
-        Log.d(TAG, "✓ Detectado: Display normal/moderado → Estrategia 1 (Normalización)");
-        return 1;
-    }
-
-    /**
-     * NUEVA ESTRATEGIA: Convertir a escala de grises sin umbralización agresiva.
-     * Mantiene los detalles de los segmentos LED preservando la información estructural.
-     */
-    private Bitmap normalizeDisplayColors(@NonNull Bitmap src) {
-        int width = src.getWidth();
-        int height = src.getHeight();
-        int[] pixels = new int[width * height];
-        src.getPixels(pixels, 0, width, 0, 0, width, height);
-
-        // Analizar el rango de brillo para aplicar normalización adaptativa
-        int minBrightness = 255;
-        int maxBrightness = 0;
-        int[] grayscaleValues = new int[pixels.length];
-
-        // PASO 1: Convertir a escala de grises usando luminancia
-        for (int i = 0; i < pixels.length; i++) {
-            int pixel = pixels[i];
-            int r = (pixel >> 16) & 0xFF;
-            int g = (pixel >> 8) & 0xFF;
-            int b = pixel & 0xFF;
-
-            // Usar pesos estándar de luminancia (favorece canal verde)
-            int gray = (int)(0.299 * r + 0.587 * g + 0.114 * b);
-            grayscaleValues[i] = gray;
-
-            minBrightness = Math.min(minBrightness, gray);
-            maxBrightness = Math.max(maxBrightness, gray);
-        }
-
-        int brightnessRange = maxBrightness - minBrightness;
-        float avgBrightness = (minBrightness + maxBrightness) / 2.0f;
-
-        Log.d(TAG, String.format("📊 Análisis: min=%d, max=%d, rango=%d, promedio=%.1f",
-                minBrightness, maxBrightness, brightnessRange, avgBrightness));
-
-        // PASO 2: Normalización lineal para expandir el contraste
-        // Esto preserva los detalles mientras aumenta la diferencia entre LEDs y fondo
-        for (int i = 0; i < pixels.length; i++) {
-            int gray = grayscaleValues[i];
-            int normalized;
-
-            if (brightnessRange > 50) {
-                // Hay suficiente contraste: aplicar expansión lineal
-                normalized = (int)(((gray - minBrightness) * 255.0f) / brightnessRange);
-            } else {
-                // Poco contraste: aplicar curva suave para resaltar diferencias
-                float normalized01 = (gray - minBrightness) / (float)Math.max(1, brightnessRange);
-                // Aplicar función gamma para aumentar contraste
-                normalized = (int)(Math.pow(normalized01, 0.7) * 255);
-            }
-
-            // Clamp
-            normalized = Math.max(0, Math.min(255, normalized));
-
-            pixels[i] = (0xFF << 24) | (normalized << 16) | (normalized << 8) | normalized;
-        }
-
-        Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        result.setPixels(pixels, 0, width, 0, 0, width, height);
-
-        Log.d(TAG, "✅ Normalización lineal aplicada (preserva detalles)");
-        return result;
-    }
-
-    /**
-     * ESTRATEGIA 2: Inversión de imagen para displays LED brillantes sobre fondo oscuro.
-     * Esta estrategia invierte los colores: LEDs brillantes → oscuros, Fondo oscuro → claro
+     * ESTRATEGIA 2: Inversión de imagen para displays LED.
+     * Convierte segmentos brillantes en oscuros para mejor detección.
      */
     private Bitmap invertImagePreprocessing(@NonNull Bitmap src) {
         int width = src.getWidth();
@@ -308,18 +194,13 @@ public class DisplayDetector {
         int[] pixels = new int[width * height];
         src.getPixels(pixels, 0, width, 0, 0, width, height);
 
-        Log.d(TAG, "🔄 Aplicando inversión de imagen");
-
         for (int i = 0; i < pixels.length; i++) {
             int pixel = pixels[i];
             int r = (pixel >> 16) & 0xFF;
             int g = (pixel >> 8) & 0xFF;
             int b = pixel & 0xFF;
 
-            // Convertir a escala de grises
             int gray = (int)(0.299 * r + 0.587 * g + 0.114 * b);
-
-            // INVERTIR: 255 - valor
             int inverted = 255 - gray;
 
             pixels[i] = (0xFF << 24) | (inverted << 16) | (inverted << 8) | inverted;
@@ -328,7 +209,6 @@ public class DisplayDetector {
         Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         result.setPixels(pixels, 0, width, 0, 0, width, height);
 
-        Log.d(TAG, "✅ Inversión completada");
         return result;
     }
 
