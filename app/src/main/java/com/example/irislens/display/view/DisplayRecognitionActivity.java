@@ -6,7 +6,6 @@ import android.view.Surface;
 import android.view.WindowManager;
 import android.view.MotionEvent;
 import android.util.Log;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -34,7 +33,6 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
     private CameraBridgeViewBase cameraBridgeViewBase;
     private Mat mRgba;
     private TextView tvResult;
-    private ImageView ivDebugPreview; // NUEVO
     private DisplayRecognitionPresenter presenter;
     private TextToSpeechManager ttsManager;
 
@@ -47,22 +45,20 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
-        ivDebugPreview = findViewById(R.id.ivDebugPreview); // NUEVO
-
-        tvResult.setText("Modo DEBUG: Reconocimiento de displays numéricos");
+        tvResult.setText("Reconocimiento de displays. Apunte la cámara hacia el display que desea leer.");
 
         permissionManager = new PermissionManager();
         permissionManager.getPermissions(this);
 
         try {
-            presenter = new DisplayRecognitionPresenter(this, tvResult, ivDebugPreview);
+            presenter = new DisplayRecognitionPresenter(this, tvResult);
         } catch (IOException e) {
             Log.e(TAG, "Error cargando el modelo de displays TensorFlow Lite", e);
             tvResult.setText("Error cargando el modelo de displays: " + e.getMessage());
 
             if (e.getMessage() != null) {
                 if (e.getMessage().contains("assets")) {
-                    Log.e(TAG, "Error relacionado con assets - verificar que los archivos .tflite y labels.txt estén en assets/");
+                    Log.e(TAG, "Error relacionado con assets - verificar que detectorDisplay.tflite y labelsDisplay.txt estén en assets/");
                 } else if (e.getMessage().contains("model")) {
                     Log.e(TAG, "Error del modelo - verificar formato TensorFlow Lite");
                 }
@@ -71,9 +67,7 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
 
         ttsManager = new TextToSpeechManager(this);
         new Handler().postDelayed(() -> {
-            ttsManager.speak("Modo de depuración activado. " +
-                    "Reconocimiento de displays numéricos. " +
-                    "Se mostrará la imagen preprocesada durante 2 segundos.");
+            ttsManager.speak("Reconocimiento de displays. Apunte la cámara hacia el display que desea leer.");
         }, 500);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -128,18 +122,9 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
-        if (cameraBridgeViewBase != null) {
-            cameraBridgeViewBase.disableView();
-        }
-
-        if (presenter != null) {
-            presenter.onDestroy();
-        }
-
-        if (ttsManager != null) {
-            ttsManager.shutdown();
-        }
+        if (cameraBridgeViewBase != null) cameraBridgeViewBase.disableView();
+        if (presenter != null) presenter.onDestroy();
+        if (ttsManager != null) ttsManager.shutdown();
     }
 
     @Override
