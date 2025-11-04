@@ -31,7 +31,7 @@ public class DisplayDetector {
     private static final String MODEL_PATH = "detectorDisplay.tflite";
     private static final String LABELS_PATH = "labelsDisplay.txt";
 
-    private static final float CONF_THRESHOLD = 0.70f; // umbral de confianza mínimo (más bajo que billetes)
+    private static final float CONF_THRESHOLD = 0.75f; // umbral de confianza mínimo (más bajo que billetes)
     private static final float NMS_IOU_THRESHOLD = 0.5f;
     private static final int INPUT_SIZE = 640;
 
