@@ -33,6 +33,7 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
     private CameraBridgeViewBase cameraBridgeViewBase;
     private Mat mRgba;
     private TextView tvResult;
+    private TextView tvDebug; // ✅ Nuevo: para debug
     private DisplayRecognitionPresenter presenter;
     private TextToSpeechManager ttsManager;
 
@@ -45,29 +46,23 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
-        tvResult.setText("Reconocimiento de displays. Apunte la cámara hacia el display que desea leer.");
+        tvDebug = findViewById(R.id.tvDebug); // ✅ Agregar esto al layout XML
+
+        tvResult.setText("Reconocimiento de displays. Apunte la cámara.");
 
         permissionManager = new PermissionManager();
         permissionManager.getPermissions(this);
 
         try {
-            presenter = new DisplayRecognitionPresenter(this, tvResult);
+            presenter = new DisplayRecognitionPresenter(this, tvResult, tvDebug);
         } catch (IOException e) {
-            Log.e(TAG, "Error cargando el modelo de displays TensorFlow Lite", e);
-            tvResult.setText("Error cargando el modelo de displays: " + e.getMessage());
-
-            if (e.getMessage() != null) {
-                if (e.getMessage().contains("assets")) {
-                    Log.e(TAG, "Error relacionado con assets - verificar que detectorDisplay.tflite y labelsDisplay.txt estén en assets/");
-                } else if (e.getMessage().contains("model")) {
-                    Log.e(TAG, "Error del modelo - verificar formato TensorFlow Lite");
-                }
-            }
+            Log.e(TAG, "Error cargando modelo TFLite", e);
+            tvResult.setText("Error: " + e.getMessage());
         }
 
         ttsManager = new TextToSpeechManager(this);
         new Handler().postDelayed(() -> {
-            ttsManager.speak("Reconocimiento de displays. Apunte la cámara hacia el display que desea leer.");
+            ttsManager.speak("Reconocimiento de displays. Apunte la cámara.");
         }, 500);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

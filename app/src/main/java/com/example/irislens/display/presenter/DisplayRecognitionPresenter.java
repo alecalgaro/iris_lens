@@ -35,6 +35,7 @@ public class DisplayRecognitionPresenter {
 
     private final Activity activity;
     private final TextView tvResult;
+    private final TextView tvDebug; // ✅ Nuevo: para mostrar detecciones raw
     private final DisplayDetector detector;
     private final TextToSpeechManager ttsManager;
     private final ExecutorService executor;
@@ -47,17 +48,21 @@ public class DisplayRecognitionPresenter {
     private int noDetectionCount = 0;
     private String lastResultText = "";
 
-    // Umbral para considerar un dígito como "confiable"
-    private static final float HIGH_CONFIDENCE_THRESHOLD = 0.85f;
+    // ⚠️ CAMBIO CRÍTICO: Umbrales más permisivos
+    private static final float MEDIUM_CONFIDENCE_THRESHOLD = 0.55f; // Verde
+    private static final float LOW_CONFIDENCE_THRESHOLD = 0.45f;   // Naranja
+    // Debajo de LOW = Rojo
 
-    // Para detectar la cantidad de dígitos esperados
+    // Sistema de confirmación deshabilitado por defecto
+    private boolean useDigitCountConfirmation = false;
     private int lastDetectedDigitCount = 0;
     private int consistentCountFrames = 0;
     private static final int FRAMES_TO_CONFIRM_COUNT = 3;
 
-    public DisplayRecognitionPresenter(Activity activity, TextView tvResult) throws IOException {
+    public DisplayRecognitionPresenter(Activity activity, TextView tvResult, TextView tvDebug) throws IOException {
         this.activity = activity;
         this.tvResult = tvResult;
+        this.tvDebug = tvDebug;
         this.ttsManager = new TextToSpeechManager(activity);
         this.executor = Executors.newSingleThreadExecutor();
         this.mainHandler = new Handler(Looper.getMainLooper());
@@ -80,8 +85,9 @@ public class DisplayRecognitionPresenter {
 
                 detector.detect(bitmap, new DisplayDetector.DetectionCallback() {
                     @Override
-                    public void onDetectionComplete(@NonNull List<DisplayDetector.DetectionResult> results) {
-                        mainHandler.post(() -> handleDetection(results));
+                    public void onDetectionComplete(@NonNull List<DisplayDetector.DetectionResult> results,
+                                                    @NonNull List<DisplayDetector.DetectionResult> rawResults) {
+                        mainHandler.post(() -> handleDetection(results, rawResults));
                     }
 
                     @Override
@@ -89,7 +95,7 @@ public class DisplayRecognitionPresenter {
                         Log.e(TAG, "Error en detección TensorFlow Lite", error);
                         mainHandler.post(() -> {
                             isProcessing = false;
-                            tvResult.setText("Error en la detección: " + error.getMessage());
+                            tvResult.setText("Error: " + error.getMessage());
                         });
                     }
                 });
@@ -98,39 +104,36 @@ public class DisplayRecognitionPresenter {
         }
     }
 
-    private void handleDetection(List<DisplayDetector.DetectionResult> results) {
+    private void handleDetection(List<DisplayDetector.DetectionResult> results,
+                                 List<DisplayDetector.DetectionResult> rawResults) {
+
+        // ✅ NUEVO: Mostrar detecciones RAW en TextView de debug
+        showRawDetections(rawResults);
+
         if (results.isEmpty()) {
             noDetectionCount++;
             tvResult.setText("");
-            resetDigitCountTracking();
 
             if (noDetectionCount >= NO_DETECTION_THRESHOLD) {
-                ttsManager.speak("No se pudo detectar. Mejore la posición de la cámara o del display.");
-                Log.d(TAG, "⚠️ No se pudo detectar tras " + NO_DETECTION_THRESHOLD + " frames");
+                ttsManager.speak("No se detectaron dígitos. Acerque más la cámara al display.");
+                Log.d(TAG, "⚠️ Sin detecciones tras " + NO_DETECTION_THRESHOLD + " frames");
                 noDetectionCount = 0;
             }
         } else {
             noDetectionCount = 0;
 
-            // Determinar cantidad esperada de dígitos
-            int currentDigitCount = results.size();
-            updateExpectedDigitCount(currentDigitCount);
-
-            // Construir el número con detección de incertidumbre
-            DisplayResult displayResult = buildNumberFromDetections(results, lastDetectedDigitCount);
+            // Construir número desde las detecciones
+            DisplayResult displayResult = buildNumberFromDetections(results);
 
             if (!displayResult.isEmpty()) {
-                // Log de cada detección
-                for (DisplayDetector.DetectionResult detection : results) {
-                    String label = detection.getLabel();
-                    float confidence = detection.getConfidence();
-                    RectF box = detection.getBoundingBox();
-
-                    Log.d(TAG, String.format(
-                            "Detectado -> Dígito: %s | Score: %.2f | Box: [%.1f,%.1f,%.1f,%.1f]",
-                            label, confidence, box.left, box.top, box.right, box.bottom
-                    ));
+                // Log detallado de cada detección
+                StringBuilder logBuilder = new StringBuilder("🔍 DETECCIONES:\n");
+                for (DisplayDetector.DetectionResult det : results) {
+                    logBuilder.append(String.format("  %s | %.3f | [%.0f, %.0f]\n",
+                            det.getLabel(), det.getConfidence(),
+                            det.getBoundingBox().left, det.getBoundingBox().top));
                 }
+                Log.d(TAG, logBuilder.toString());
 
                 // Mostrar resultado con colores
                 setColoredText(displayResult);
@@ -138,37 +141,39 @@ public class DisplayRecognitionPresenter {
                 // Guardar último resultado
                 lastResultText = displayResult.getPlainText();
 
-                // Hablar el resultado (adaptado para manejar "?")
+                // Hablar resultado
                 String speechText = displayResult.getSpeechText();
                 ttsManager.speak(speechText);
 
-                Log.d(TAG, "✅ Número detectado: " + lastResultText +
-                        " | Dígitos esperados: " + lastDetectedDigitCount);
+                Log.d(TAG, "✅ Detectado: " + lastResultText +
+                        " | Dígitos: " + results.size());
             }
         }
 
         isProcessing = false;
     }
 
-    private void updateExpectedDigitCount(int currentCount) {
-        if (currentCount == lastDetectedDigitCount) {
-            consistentCountFrames++;
-        } else {
-            consistentCountFrames = 1;
-            if (consistentCountFrames >= FRAMES_TO_CONFIRM_COUNT) {
-                lastDetectedDigitCount = currentCount;
-                Log.d(TAG, "📊 Cantidad de dígitos confirmada: " + lastDetectedDigitCount);
-            }
+    /** ✅ NUEVO: Mostrar detecciones sin filtrar */
+    private void showRawDetections(List<DisplayDetector.DetectionResult> rawResults) {
+        if (tvDebug == null) return;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔬 RAW (").append(rawResults.size()).append("):\n");
+
+        // Ordenar por posición X
+        List<DisplayDetector.DetectionResult> sorted = new ArrayList<>(rawResults);
+        Collections.sort(sorted, (a, b) ->
+                Float.compare(a.getBoundingBox().left, b.getBoundingBox().left));
+
+        for (DisplayDetector.DetectionResult det : sorted) {
+            sb.append(String.format("%s:%.2f ",
+                    det.getLabel(), det.getConfidence()));
         }
+
+        tvDebug.setText(sb.toString());
     }
 
-    private void resetDigitCountTracking() {
-        consistentCountFrames = 0;
-        // No reseteamos lastDetectedDigitCount para mantener la última referencia válida
-    }
-
-    private DisplayResult buildNumberFromDetections(List<DisplayDetector.DetectionResult> results,
-                                                    int expectedDigitCount) {
+    private DisplayResult buildNumberFromDetections(List<DisplayDetector.DetectionResult> results) {
         if (results.isEmpty()) return new DisplayResult();
 
         List<DigitWithPosition> digits = new ArrayList<>();
@@ -179,8 +184,17 @@ public class DisplayRecognitionPresenter {
             RectF box = detection.getBoundingBox();
             float xPosition = box.left + (box.width() / 2);
 
-            boolean isHighConfidence = confidence >= HIGH_CONFIDENCE_THRESHOLD;
-            digits.add(new DigitWithPosition(label, xPosition, confidence, isHighConfidence));
+            // ✅ Sistema de confianza de 3 niveles
+            ConfidenceLevel level;
+            if (confidence >= MEDIUM_CONFIDENCE_THRESHOLD) {
+                level = ConfidenceLevel.HIGH;
+            } else if (confidence >= LOW_CONFIDENCE_THRESHOLD) {
+                level = ConfidenceLevel.MEDIUM;
+            } else {
+                level = ConfidenceLevel.LOW;
+            }
+
+            digits.add(new DigitWithPosition(label, xPosition, confidence, level));
         }
 
         // Ordenar por posición X (izquierda a derecha)
@@ -191,63 +205,7 @@ public class DisplayRecognitionPresenter {
             }
         });
 
-        // Detectar huecos si sabemos cuántos dígitos esperar
-        if (expectedDigitCount > 0 && digits.size() < expectedDigitCount) {
-            digits = fillMissingDigits(digits, expectedDigitCount);
-        }
-
         return new DisplayResult(digits);
-    }
-
-    private List<DigitWithPosition> fillMissingDigits(List<DigitWithPosition> digits,
-                                                      int expectedCount) {
-        if (digits.size() >= expectedCount) return digits;
-
-        // Calcular distancia promedio entre dígitos detectados
-        float avgDistance = 0;
-        if (digits.size() > 1) {
-            float totalDistance = 0;
-            for (int i = 1; i < digits.size(); i++) {
-                totalDistance += digits.get(i).xPosition - digits.get(i-1).xPosition;
-            }
-            avgDistance = totalDistance / (digits.size() - 1);
-        }
-
-        List<DigitWithPosition> filledDigits = new ArrayList<>();
-
-        // Si no hay dígitos detectados, llenar todo con "?"
-        if (digits.isEmpty()) {
-            for (int i = 0; i < expectedCount; i++) {
-                filledDigits.add(new DigitWithPosition("?", i * 100, 0.0f, false));
-            }
-            return filledDigits;
-        }
-
-        // Llenar huecos basándose en la posición esperada
-        int digitIndex = 0;
-        for (int expectedIndex = 0; expectedIndex < expectedCount; expectedIndex++) {
-            if (digitIndex < digits.size()) {
-                // Verificar si hay un hueco
-                float expectedX = digits.get(0).xPosition + (expectedIndex * avgDistance);
-                float actualX = digits.get(digitIndex).xPosition;
-
-                // Si la posición actual está cerca de la esperada, usar el dígito detectado
-                if (Math.abs(actualX - expectedX) < avgDistance * 0.6f || avgDistance == 0) {
-                    filledDigits.add(digits.get(digitIndex));
-                    digitIndex++;
-                } else {
-                    // Hueco detectado, insertar "?"
-                    filledDigits.add(new DigitWithPosition("?", expectedX, 0.0f, false));
-                }
-            } else {
-                // No hay más dígitos detectados, llenar con "?"
-                float expectedX = filledDigits.isEmpty() ? 0 :
-                        filledDigits.get(filledDigits.size()-1).xPosition + avgDistance;
-                filledDigits.add(new DigitWithPosition("?", expectedX, 0.0f, false));
-            }
-        }
-
-        return filledDigits;
     }
 
     private void setColoredText(DisplayResult result) {
@@ -257,12 +215,18 @@ public class DisplayRecognitionPresenter {
         int position = 0;
         for (DigitWithPosition digit : result.digits) {
             int color;
-            if (digit.digit.equals("?")) {
-                color = Color.RED; // Rojo para desconocido
-            } else if (digit.isHighConfidence) {
-                color = Color.GREEN; // Verde para alta confianza
-            } else {
-                color = Color.rgb(255, 165, 0); // Naranja para baja confianza
+            switch (digit.confidenceLevel) {
+                case HIGH:
+                    color = Color.GREEN;
+                    break;
+                case MEDIUM:
+                    color = Color.rgb(255, 165, 0); // Naranja
+                    break;
+                case LOW:
+                    color = Color.rgb(255, 100, 100); // Rojo claro
+                    break;
+                default:
+                    color = Color.RED;
             }
 
             spannable.setSpan(
@@ -277,17 +241,23 @@ public class DisplayRecognitionPresenter {
         tvResult.setText(spannable);
     }
 
+    private enum ConfidenceLevel {
+        HIGH,    // >= 0.55 (Verde)
+        MEDIUM,  // >= 0.45 (Naranja)
+        LOW      // < 0.45 (Rojo)
+    }
+
     private static class DigitWithPosition {
         String digit;
         float xPosition;
         float confidence;
-        boolean isHighConfidence;
+        ConfidenceLevel confidenceLevel;
 
-        DigitWithPosition(String digit, float xPosition, float confidence, boolean isHighConfidence) {
+        DigitWithPosition(String digit, float xPosition, float confidence, ConfidenceLevel level) {
             this.digit = digit;
             this.xPosition = xPosition;
             this.confidence = confidence;
-            this.isHighConfidence = isHighConfidence;
+            this.confidenceLevel = level;
         }
     }
 
@@ -320,33 +290,13 @@ public class DisplayRecognitionPresenter {
 
         String getSpeechText() {
             StringBuilder sb = new StringBuilder();
-            int unknownCount = 0;
-
-            for (DigitWithPosition digit : digits) {
-                if (digit.digit.equals("?")) {
-                    unknownCount++;
-                } else {
-                    if (unknownCount > 0) {
-                        sb.append(unknownCount == 1 ? "dígito desconocido, " :
-                                unknownCount + " dígitos desconocidos, ");
-                        unknownCount = 0;
-                    }
-                    sb.append(digit.digit).append(", ");
+            for (int i = 0; i < digits.size(); i++) {
+                sb.append(digits.get(i).digit);
+                if (i < digits.size() - 1) {
+                    sb.append(", ");
                 }
             }
-
-            if (unknownCount > 0) {
-                sb.append(unknownCount == 1 ? "dígito desconocido" :
-                        unknownCount + " dígitos desconocidos");
-            }
-
-            String result = sb.toString();
-            // Limpiar comas finales
-            if (result.endsWith(", ")) {
-                result = result.substring(0, result.length() - 2);
-            }
-
-            return result.isEmpty() ? "Sin detección" : result;
+            return sb.toString();
         }
     }
 
