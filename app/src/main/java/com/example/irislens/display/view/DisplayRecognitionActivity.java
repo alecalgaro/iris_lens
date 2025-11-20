@@ -33,7 +33,6 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
     private CameraBridgeViewBase cameraBridgeViewBase;
     private Mat mRgba;
     private TextView tvResult;
-    private TextView tvDebug; // ✅ Nuevo: para debug
     private DisplayRecognitionPresenter presenter;
     private TextToSpeechManager ttsManager;
 
@@ -46,23 +45,31 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
-        tvDebug = findViewById(R.id.tvDebug); // ✅ Agregar esto al layout XML
 
-        tvResult.setText("Reconocimiento de displays. Apunte la cámara.");
+        tvResult.setText("Reconocimiento de displays. Apunte la cámara hacia el display que desea reconocer.");
 
         permissionManager = new PermissionManager();
         permissionManager.getPermissions(this);
 
         try {
-            presenter = new DisplayRecognitionPresenter(this, tvResult, tvDebug);
+            presenter = new DisplayRecognitionPresenter(this, tvResult);
         } catch (IOException e) {
             Log.e(TAG, "Error cargando modelo TFLite", e);
-            tvResult.setText("Error: " + e.getMessage());
+            tvResult.setText("Error cargando el modelo de displays: " + e.getMessage());
+
+            if (e.getMessage() != null) {
+                if (e.getMessage().contains("assets")) {
+                    Log.e(TAG, "Error relacionado con assets - verificar que los archivos detectorDisplay.tflite y labelsMoney.txt estén en assets/");
+                } else if (e.getMessage().contains("model")) {
+                    Log.e(TAG, "Error del modelo - verificar formato TensorFlow Lite");
+                }
+            }
         }
 
         ttsManager = new TextToSpeechManager(this);
         new Handler().postDelayed(() -> {
-            ttsManager.speak("Reconocimiento de displays. Apunte la cámara.");
+            ttsManager.speak("Reconocimiento de displays. " +
+                    "Apunte la cámara hacia el display que desea reconocer.");
         }, 500);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -117,9 +124,18 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (cameraBridgeViewBase != null) cameraBridgeViewBase.disableView();
-        if (presenter != null) presenter.onDestroy();
-        if (ttsManager != null) ttsManager.shutdown();
+
+        if (cameraBridgeViewBase != null) {
+            cameraBridgeViewBase.disableView();
+        }
+
+        if (presenter != null) {
+            presenter.onDestroy();
+        }
+
+        if (ttsManager != null) {
+            ttsManager.shutdown();
+        }
     }
 
     @Override

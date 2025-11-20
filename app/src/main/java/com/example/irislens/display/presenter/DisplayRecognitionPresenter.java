@@ -35,7 +35,6 @@ public class DisplayRecognitionPresenter {
 
     private final Activity activity;
     private final TextView tvResult;
-    private final TextView tvDebug; // ✅ Nuevo: para mostrar detecciones raw
     private final DisplayDetector detector;
     private final TextToSpeechManager ttsManager;
     private final ExecutorService executor;
@@ -48,21 +47,13 @@ public class DisplayRecognitionPresenter {
     private int noDetectionCount = 0;
     private String lastResultText = "";
 
-    // ⚠️ CAMBIO CRÍTICO: Umbrales más permisivos
+    // Umbrales de confianza para colores
     private static final float MEDIUM_CONFIDENCE_THRESHOLD = 0.55f; // Verde
     private static final float LOW_CONFIDENCE_THRESHOLD = 0.45f;   // Naranja
-    // Debajo de LOW = Rojo
 
-    // Sistema de confirmación deshabilitado por defecto
-    private boolean useDigitCountConfirmation = false;
-    private int lastDetectedDigitCount = 0;
-    private int consistentCountFrames = 0;
-    private static final int FRAMES_TO_CONFIRM_COUNT = 3;
-
-    public DisplayRecognitionPresenter(Activity activity, TextView tvResult, TextView tvDebug) throws IOException {
+    public DisplayRecognitionPresenter(Activity activity, TextView tvResult) throws IOException {
         this.activity = activity;
         this.tvResult = tvResult;
-        this.tvDebug = tvDebug;
         this.ttsManager = new TextToSpeechManager(activity);
         this.executor = Executors.newSingleThreadExecutor();
         this.mainHandler = new Handler(Looper.getMainLooper());
@@ -107,9 +98,6 @@ public class DisplayRecognitionPresenter {
     private void handleDetection(List<DisplayDetector.DetectionResult> results,
                                  List<DisplayDetector.DetectionResult> rawResults) {
 
-        // ✅ NUEVO: Mostrar detecciones RAW en TextView de debug
-        showRawDetections(rawResults);
-
         if (results.isEmpty()) {
             noDetectionCount++;
             tvResult.setText("");
@@ -126,7 +114,7 @@ public class DisplayRecognitionPresenter {
             DisplayResult displayResult = buildNumberFromDetections(results);
 
             if (!displayResult.isEmpty()) {
-                // Log detallado de cada detección
+                // Log detallado
                 StringBuilder logBuilder = new StringBuilder("🔍 DETECCIONES:\n");
                 for (DisplayDetector.DetectionResult det : results) {
                     logBuilder.append(String.format("  %s | %.3f | [%.0f, %.0f]\n",
@@ -135,7 +123,7 @@ public class DisplayRecognitionPresenter {
                 }
                 Log.d(TAG, logBuilder.toString());
 
-                // Mostrar resultado con colores
+                // Mostrar resultado con colores según confianza
                 setColoredText(displayResult);
 
                 // Guardar último resultado
@@ -153,26 +141,6 @@ public class DisplayRecognitionPresenter {
         isProcessing = false;
     }
 
-    /** ✅ NUEVO: Mostrar detecciones sin filtrar */
-    private void showRawDetections(List<DisplayDetector.DetectionResult> rawResults) {
-        if (tvDebug == null) return;
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔬 RAW (").append(rawResults.size()).append("):\n");
-
-        // Ordenar por posición X
-        List<DisplayDetector.DetectionResult> sorted = new ArrayList<>(rawResults);
-        Collections.sort(sorted, (a, b) ->
-                Float.compare(a.getBoundingBox().left, b.getBoundingBox().left));
-
-        for (DisplayDetector.DetectionResult det : sorted) {
-            sb.append(String.format("%s:%.2f ",
-                    det.getLabel(), det.getConfidence()));
-        }
-
-        tvDebug.setText(sb.toString());
-    }
-
     private DisplayResult buildNumberFromDetections(List<DisplayDetector.DetectionResult> results) {
         if (results.isEmpty()) return new DisplayResult();
 
@@ -184,7 +152,7 @@ public class DisplayRecognitionPresenter {
             RectF box = detection.getBoundingBox();
             float xPosition = box.left + (box.width() / 2);
 
-            // ✅ Sistema de confianza de 3 niveles
+            // Sistema de confianza de 3 niveles
             ConfidenceLevel level;
             if (confidence >= MEDIUM_CONFIDENCE_THRESHOLD) {
                 level = ConfidenceLevel.HIGH;

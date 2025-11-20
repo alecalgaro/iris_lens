@@ -28,8 +28,8 @@ import java.util.concurrent.Executors;
  */
 public class MoneyDetector {
     private static final String TAG = "MoneyDetector";
-    private static final String MODEL_PATH = "detector.tflite";
-    private static final String LABELS_PATH = "labels.txt";
+    private static final String MODEL_PATH = "detectorMoney.tflite";
+    private static final String LABELS_PATH = "labelsMoney.txt";
 
     private static final float CONF_THRESHOLD = 0.85f; // umbral de confianza minimo
     private static final float NMS_IOU_THRESHOLD = 0.5f;

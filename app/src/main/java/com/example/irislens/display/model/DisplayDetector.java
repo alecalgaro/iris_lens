@@ -31,9 +31,8 @@ public class DisplayDetector {
     private static final String MODEL_PATH = "detectorDisplay.tflite";
     private static final String LABELS_PATH = "labelsDisplay.txt";
 
-    // ⚠️ CAMBIO CRÍTICO: Umbral reducido para capturar más detecciones
-    private static final float CONF_THRESHOLD = 0.45f; // Antes: 0.75f
-    private static final float NMS_IOU_THRESHOLD = 0.4f; // Antes: 0.5f (más agresivo)
+    private static final float CONF_THRESHOLD = 0.45f;
+    private static final float NMS_IOU_THRESHOLD = 0.4f;
     private static final int INPUT_SIZE = 640;
 
     private final Interpreter interpreter;
@@ -43,7 +42,7 @@ public class DisplayDetector {
 
     public interface DetectionCallback {
         void onDetectionComplete(@NonNull List<DetectionResult> results,
-                                 @NonNull List<DetectionResult> rawResults); // ✅ Agregado: resultados sin filtrar
+                                 @NonNull List<DetectionResult> rawResults);
         void onDetectionError(@NonNull Exception error);
     }
 
@@ -67,8 +66,6 @@ public class DisplayDetector {
         executor.execute(() -> {
             try {
                 List<DetectionResult>[] results = detectInternal(bitmap);
-                // results[0] = detecciones filtradas
-                // results[1] = detecciones RAW sin filtrar
                 callback.onDetectionComplete(results[0], results[1]);
             } catch (Exception e) {
                 Log.e(TAG, "Error en detección", e);
@@ -77,7 +74,6 @@ public class DisplayDetector {
         });
     }
 
-    /** Detección interna - retorna [filtradas, raw] */
     private List<DetectionResult>[] detectInternal(@NonNull Bitmap bitmap) {
         long t0 = System.currentTimeMillis();
         ByteBuffer input = preprocess(bitmap);
@@ -97,12 +93,12 @@ public class DisplayDetector {
         else if (outShape[2] == channels) layoutCFirst = false;
         else layoutCFirst = (outShape[1] > outShape[2] && outShape[1] >= channels);
 
-        // ✅ Parsear SIN umbral para resultados RAW
+        // Parsear SIN umbral para resultados RAW
         List<DetectionResult> rawResults = layoutCFirst
                 ? parsePreds_CFirst(raw[0], bitmap.getWidth(), bitmap.getHeight(), 0.01f)
                 : parsePreds_PFirst(raw[0], bitmap.getWidth(), bitmap.getHeight(), 0.01f);
 
-        // ✅ Parsear CON umbral normal
+        // Parsear CON umbral normal
         List<DetectionResult> preNms = layoutCFirst
                 ? parsePreds_CFirst(raw[0], bitmap.getWidth(), bitmap.getHeight(), CONF_THRESHOLD)
                 : parsePreds_PFirst(raw[0], bitmap.getWidth(), bitmap.getHeight(), CONF_THRESHOLD);
@@ -134,7 +130,6 @@ public class DisplayDetector {
         return buf;
     }
 
-    // ✅ Ahora reciben threshold como parámetro
     private List<DetectionResult> parsePreds_CFirst(float[][] preds, int origW, int origH, float threshold) {
         List<DetectionResult> out = new ArrayList<>();
         int N = preds[0].length;
