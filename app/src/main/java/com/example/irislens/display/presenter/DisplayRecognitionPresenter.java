@@ -1,3 +1,6 @@
+// ════════════════════════════════════════════════════════════════
+// 1. DisplayRecognitionPresenter.java - VERSIÓN FINAL
+// ════════════════════════════════════════════════════════════════
 package com.example.irislens.display.presenter;
 
 import android.app.Activity;
@@ -16,8 +19,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import com.example.irislens.R;
+import com.example.irislens.common.AppVoiceManager;
 import com.example.irislens.common.ImageProcessor;
-import com.example.irislens.common.TextToSpeechManager;
 import com.example.irislens.display.model.DisplayDetector;
 
 import org.opencv.core.Mat;
@@ -36,62 +39,64 @@ public class DisplayRecognitionPresenter {
     private final Activity activity;
     private final TextView tvResult;
     private final DisplayDetector detector;
-    private final TextToSpeechManager ttsManager;
+    private final AppVoiceManager voiceManager;
     private final ExecutorService executor;
     private final Handler mainHandler;
 
     private volatile boolean isProcessing = false;
+    private volatile boolean isAnnouncing = false;
     private int frameCount = 0;
 
     private static final int NO_DETECTION_THRESHOLD = 8;
     private int noDetectionCount = 0;
     private String lastResultText = "";
 
-    // Umbrales de confianza para colores
-    private static final float MEDIUM_CONFIDENCE_THRESHOLD = 0.55f; // Verde
-    private static final float LOW_CONFIDENCE_THRESHOLD = 0.45f;   // Naranja
+    private static final float MEDIUM_CONFIDENCE_THRESHOLD = 0.55f;
+    private static final float LOW_CONFIDENCE_THRESHOLD = 0.45f;
 
     public DisplayRecognitionPresenter(Activity activity, TextView tvResult) throws IOException {
         this.activity = activity;
         this.tvResult = tvResult;
-        this.ttsManager = new TextToSpeechManager(activity);
+        this.voiceManager = AppVoiceManager.getInstance(activity);
         this.executor = Executors.newSingleThreadExecutor();
         this.mainHandler = new Handler(Looper.getMainLooper());
         this.detector = new DisplayDetector(activity.getApplicationContext());
     }
 
     public void processCameraFrame(Mat image) {
-        if (isProcessing) return;
+        if (isProcessing || isAnnouncing) {
+            return;
+        }
+
         frameCount++;
         if (frameCount == 5) {
-            if (!ttsManager.isSpeaking()) {
-                MediaPlayer mediaPlayer = MediaPlayer.create(activity, R.raw.captura);
-                if (mediaPlayer != null) {
-                    mediaPlayer.start();
-                    mediaPlayer.setOnCompletionListener(MediaPlayer::release);
+            frameCount = 0;
+
+            MediaPlayer mediaPlayer = MediaPlayer.create(activity, R.raw.captura);
+            if (mediaPlayer != null) {
+                mediaPlayer.start();
+                mediaPlayer.setOnCompletionListener(MediaPlayer::release);
+            }
+
+            Bitmap bitmap = ImageProcessor.convertToBitmap(image);
+            isProcessing = true;
+
+            detector.detect(bitmap, new DisplayDetector.DetectionCallback() {
+                @Override
+                public void onDetectionComplete(@NonNull List<DisplayDetector.DetectionResult> results,
+                                                @NonNull List<DisplayDetector.DetectionResult> rawResults) {
+                    mainHandler.post(() -> handleDetection(results, rawResults));
                 }
 
-                Bitmap bitmap = ImageProcessor.convertToBitmap(image);
-                isProcessing = true;
-
-                detector.detect(bitmap, new DisplayDetector.DetectionCallback() {
-                    @Override
-                    public void onDetectionComplete(@NonNull List<DisplayDetector.DetectionResult> results,
-                                                    @NonNull List<DisplayDetector.DetectionResult> rawResults) {
-                        mainHandler.post(() -> handleDetection(results, rawResults));
-                    }
-
-                    @Override
-                    public void onDetectionError(@NonNull Exception error) {
-                        Log.e(TAG, "Error en detección TensorFlow Lite", error);
-                        mainHandler.post(() -> {
-                            isProcessing = false;
-                            tvResult.setText("Error: " + error.getMessage());
-                        });
-                    }
-                });
-            }
-            frameCount = 0;
+                @Override
+                public void onDetectionError(@NonNull Exception error) {
+                    Log.e(TAG, "Error en detección TensorFlow Lite", error);
+                    mainHandler.post(() -> {
+                        isProcessing = false;
+                        tvResult.setText("Error: " + error.getMessage());
+                    });
+                }
+            });
         }
     }
 
@@ -100,17 +105,29 @@ public class DisplayRecognitionPresenter {
 
         if (results.isEmpty()) {
             noDetectionCount++;
-            tvResult.setText("");
 
             if (noDetectionCount >= NO_DETECTION_THRESHOLD) {
-                ttsManager.speak("No se detectaron dígitos. Acerque más la cámara al display.");
+                String msg = "No se detectaron dígitos. Acerque más la cámara al display.";
+
+                // ✅ Mostrar texto y hablar
+                tvResult.setText(msg);
+                isAnnouncing = true;
+                voiceManager.speak(msg);
+
+                // ✅ Calcular duración y limpiar automáticamente
+                int duration = calculateSpeechDuration(msg);
+                mainHandler.postDelayed(() -> {
+                    tvResult.setText("");
+                    isAnnouncing = false;
+                    Log.d(TAG, "🧹 Texto limpiado automáticamente");
+                }, duration);
+
                 Log.d(TAG, "⚠️ Sin detecciones tras " + NO_DETECTION_THRESHOLD + " frames");
                 noDetectionCount = 0;
             }
         } else {
             noDetectionCount = 0;
 
-            // Construir número desde las detecciones
             DisplayResult displayResult = buildNumberFromDetections(results);
 
             if (!displayResult.isEmpty()) {
@@ -123,22 +140,40 @@ public class DisplayRecognitionPresenter {
                 }
                 Log.d(TAG, logBuilder.toString());
 
-                // Mostrar resultado con colores según confianza
+                // ✅ Mostrar texto coloreado
                 setColoredText(displayResult);
-
-                // Guardar último resultado
                 lastResultText = displayResult.getPlainText();
 
-                // Hablar resultado
+                // ✅ Hablar resultado
                 String speechText = displayResult.getSpeechText();
-                ttsManager.speak(speechText);
+                isAnnouncing = true;
+                voiceManager.speak(speechText);
 
-                Log.d(TAG, "✅ Detectado: " + lastResultText +
-                        " | Dígitos: " + results.size());
+                // ✅ Calcular duración y limpiar automáticamente
+                int duration = calculateSpeechDuration(speechText);
+                mainHandler.postDelayed(() -> {
+                    tvResult.setText("");
+                    isAnnouncing = false;
+                    Log.d(TAG, "🧹 Texto limpiado automáticamente");
+                }, duration);
+
+                Log.d(TAG, "✅ Detectado: " + lastResultText + " | Dígitos: " + results.size());
             }
         }
 
         isProcessing = false;
+    }
+
+    /**
+     * ✅ Calcula la duración estimada del habla
+     * Basado en 150 palabras por minuto (promedio español)
+     */
+    private int calculateSpeechDuration(String text) {
+        int wordCount = text.split("\\s+").length;
+        // 150 palabras/minuto = 2.5 palabras/segundo
+        // Agregar 1 segundo de margen de seguridad
+        int baseDuration = (int) ((wordCount / 2.5) * 1000);
+        return baseDuration + 1000; // +1 segundo extra
     }
 
     private DisplayResult buildNumberFromDetections(List<DisplayDetector.DetectionResult> results) {
@@ -152,7 +187,6 @@ public class DisplayRecognitionPresenter {
             RectF box = detection.getBoundingBox();
             float xPosition = box.left + (box.width() / 2);
 
-            // Sistema de confianza de 3 niveles
             ConfidenceLevel level;
             if (confidence >= MEDIUM_CONFIDENCE_THRESHOLD) {
                 level = ConfidenceLevel.HIGH;
@@ -165,7 +199,6 @@ public class DisplayRecognitionPresenter {
             digits.add(new DigitWithPosition(label, xPosition, confidence, level));
         }
 
-        // Ordenar por posición X (izquierda a derecha)
         Collections.sort(digits, new Comparator<DigitWithPosition>() {
             @Override
             public int compare(DigitWithPosition d1, DigitWithPosition d2) {
@@ -188,10 +221,10 @@ public class DisplayRecognitionPresenter {
                     color = Color.GREEN;
                     break;
                 case MEDIUM:
-                    color = Color.rgb(255, 165, 0); // Naranja
+                    color = Color.rgb(255, 165, 0);
                     break;
                 case LOW:
-                    color = Color.rgb(255, 100, 100); // Rojo claro
+                    color = Color.rgb(255, 100, 100);
                     break;
                 default:
                     color = Color.RED;
@@ -210,9 +243,7 @@ public class DisplayRecognitionPresenter {
     }
 
     private enum ConfidenceLevel {
-        HIGH,    // >= 0.55 (Verde)
-        MEDIUM,  // >= 0.45 (Naranja)
-        LOW      // < 0.45 (Rojo)
+        HIGH, MEDIUM, LOW
     }
 
     private static class DigitWithPosition {
@@ -269,16 +300,26 @@ public class DisplayRecognitionPresenter {
     }
 
     public void onDestroy() {
-        if (ttsManager != null) ttsManager.shutdown();
+        // Cancelar callbacks pendientes
+        mainHandler.removeCallbacksAndMessages(null);
         if (executor != null && !executor.isShutdown()) executor.shutdown();
         if (detector != null) detector.close();
     }
 
     public void onDoubleTap() {
-        if (ttsManager.isSpeaking()) {
-            ttsManager.stop();
-            tvResult.setText("");
-        }
+        Log.d(TAG, "👆 Doble tap detectado");
+
+        // ✅ Detener voz
+        voiceManager.stop();
+
+        // ✅ Limpiar texto
+        tvResult.setText("");
+
+        // ✅ Resetear flag y cancelar limpieza pendiente
+        isAnnouncing = false;
+        mainHandler.removeCallbacksAndMessages(null);
+
+        Log.d(TAG, "✅ Voz detenida y pantalla limpia");
     }
 
     public String getLastResultText() {

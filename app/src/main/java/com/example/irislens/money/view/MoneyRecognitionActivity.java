@@ -34,7 +34,7 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
     private Mat mRgba;
     private TextView tvResult;
     private MoneyRecognitionPresenter presenter;
-    private TextToSpeechManager ttsManager;
+    //private TextToSpeechManager ttsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +45,8 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
-        tvResult.setText("Reconocimiento de billetes. Apunte la cámara hacia el billete que desea reconocer.");
+        //tvResult.setText("Reconocimiento de billetes. Apunte la cámara hacia el billete que desea reconocer.");
+        String message = "Reconocimiento de billetes. Apunte la cámara hacia el billete que desea reconocer.";
 
         permissionManager = new PermissionManager();
         permissionManager.getPermissions(this);
@@ -67,11 +68,10 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
         }
 
         // Mensaje de voz sobre la funcionalidad
-        ttsManager = new TextToSpeechManager(this);
+        //ttsManager = new TextToSpeechManager(this);
         // Espera breve para asegurar que TTS este listo
         new Handler().postDelayed(() -> {
-            ttsManager.speak("Reconocimiento de billetes. " +
-                    "Apunte la cámara hacia el billete que desea reconocer.");
+            voiceManager.speakAndShow(tvResult, message);
         }, 500);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -142,14 +142,20 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
             presenter.onDestroy();
         }
 
-        if (ttsManager != null) {
-            ttsManager.shutdown();
+        if (voiceManager != null) {
+            voiceManager.stop();
         }
     }
 
     @Override
     protected void onDoubleTapDetected() {
-        if (presenter != null) presenter.onDoubleTap();
+        if (voiceManager != null) {
+            voiceManager.stopAndClear(tvResult);
+        }
+        // También notificar al presenter
+        if (presenter != null) {
+            presenter.onDoubleTap();
+        }
     }
 
     @Override

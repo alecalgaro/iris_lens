@@ -1,3 +1,6 @@
+// ════════════════════════════════════════════════════════════════
+// MedicineRecognitionPresenter.java - CON SOPORTE TALKBACK
+// ════════════════════════════════════════════════════════════════
 package com.example.irislens.medicine.presenter;
 
 import android.app.Activity;
@@ -16,7 +19,8 @@ import com.example.irislens.R;
 import com.example.irislens.medicine.model.DatabaseManager;
 import com.example.irislens.common.ImageProcessor;
 import com.example.irislens.medicine.model.ReadImageText;
-import com.example.irislens.common.TextToSpeechManager;
+import com.example.irislens.common.AppVoiceManager;
+import com.example.irislens.common.AccessibilityHelper;
 import com.example.irislens.medicine.model.Tools;
 
 import org.opencv.core.Mat;
@@ -31,35 +35,36 @@ import androidx.core.util.Pair;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.DocumentSnapshot;
 
-/**
- * Presenter para el reconocimiento de medicamentos.
- * Maneja la logica de procesamiento de imagenes para el reconocimiento.
- */
 public class MedicineRecognitionPresenter {
+    private static final String TAG = "MedicinePresenter";
+
     private final Activity activity;
     private final TextView tvResult;
     private final DatabaseManager dbManager;
-    private final TextToSpeechManager ttsManager;
+    private final AppVoiceManager voiceManager;
+    private final AccessibilityHelper accessibilityHelper; // ✅ NUEVO
     private final ReadImageText readImageText;
     private final ExecutorService executor;
+    private final Handler mainHandler;
+
     private int noDetectionCount = 0;
     private boolean rotate = false;
-    private int rotationState = 0; // 0 = sin rotacion, 1 = 180°, 2 = 90°, 3 = 270°
+    private int rotationState = 0;
     private int frameCount = 0;
     private volatile boolean isProcessing = false;
+    private volatile boolean isAnnouncing = false;
 
     public MedicineRecognitionPresenter(Activity activity, TextView tvResult) {
         this.activity = activity;
         this.tvResult = tvResult;
         this.dbManager = new DatabaseManager(activity.getApplicationContext());
-        this.ttsManager = new TextToSpeechManager(activity);
+        this.voiceManager = AppVoiceManager.getInstance(activity);
+        this.accessibilityHelper = new AccessibilityHelper(activity); // ✅ NUEVO
         this.readImageText = new ReadImageText(activity.getApplicationContext());
         this.executor = Executors.newSingleThreadExecutor();
+        this.mainHandler = new Handler(Looper.getMainLooper());
     }
 
-    /**
-     * Inicializa la base de datos y sincroniza con Firestore.
-     */
     public void initDatabase() {
         SQLiteDatabase db = dbManager.getReadableDatabase();
         if (db != null) {
@@ -68,84 +73,73 @@ public class MedicineRecognitionPresenter {
         }
     }
 
-    /**
-     * Rotar la imagen 90 grados (por defecto la camara de OpenCV viene rotada)
-     * @param image Imagen a rotar
-     * @return Imagen rotada
-     */
     public Mat rotateImage(Mat image) {
         return ImageProcessor.rotateImage(image);
     }
 
-    /**
-     * Procesar un frame de la camara
-     * @param image Imagen capturada por la camara
-     */
     public void processCameraFrame(Mat image) {
-        if (isProcessing) return;
+        if (isProcessing || isAnnouncing) {
+            return;
+        }
+
         frameCount++;
         if (frameCount == 10) {
-            if (!ttsManager.isSpeaking()) {
-                // Reproducir un sonido para indicar al usuario que se ha capturado un frame
-                MediaPlayer mediaPlayer = MediaPlayer.create(activity, R.raw.captura);
-                mediaPlayer.start();
-                // Preprocesar la imagen para mejorar la visibilidad del texto
-                Pair<Mat, Double> processedImageAndBrightness = ImageProcessor.preprocessImage(image);
-                Mat mRgba = processedImageAndBrightness.first;
-                double meanBrightness = processedImageAndBrightness.second;
-                if (meanBrightness < 10) {
-                    ttsManager.speak("Debe estar en un lugar más iluminado para evitar errores de detección");
-                }
-
-                // Si no se ha detectado nada antes, intenta las rotaciones
-                if (noDetectionCount > 0 && rotate) {
-                    switch (rotationState) {
-                        case 0:
-                            processImageAndSearchMatches(mRgba);
-                            rotationState = 1;
-                            break;
-                        case 1:
-                            mRgba = ImageProcessor.rotateImage180(mRgba);
-                            processImageAndSearchMatches(mRgba);
-                            rotationState = 2;
-                            break;
-                        case 2:
-                            mRgba = ImageProcessor.rotateImage90(mRgba);
-                            processImageAndSearchMatches(mRgba);
-                            rotationState = 3;
-                            break;
-                        case 3:
-                            mRgba = ImageProcessor.rotateImage270(mRgba);
-                            processImageAndSearchMatches(mRgba);
-                            rotationState = 0;
-                            break;
-                    }
-                } else {
-                    processImageAndSearchMatches(mRgba);
-                }
-            }
             frameCount = 0;
+
+            MediaPlayer mediaPlayer = MediaPlayer.create(activity, R.raw.captura);
+            if (mediaPlayer != null) {
+                mediaPlayer.start();
+                mediaPlayer.setOnCompletionListener(MediaPlayer::release);
+            }
+
+            Pair<Mat, Double> processedImageAndBrightness = ImageProcessor.preprocessImage(image);
+            Mat mRgba = processedImageAndBrightness.first;
+            double meanBrightness = processedImageAndBrightness.second;
+
+            if (meanBrightness < 10) {
+                String msg = "Debe estar en un lugar más iluminado para evitar errores de detección";
+                announceMessage(msg); // ✅ CAMBIADO
+                return;
+            }
+
+            if (noDetectionCount > 0 && rotate) {
+                switch (rotationState) {
+                    case 0:
+                        processImageAndSearchMatches(mRgba);
+                        rotationState = 1;
+                        break;
+                    case 1:
+                        mRgba = ImageProcessor.rotateImage180(mRgba);
+                        processImageAndSearchMatches(mRgba);
+                        rotationState = 2;
+                        break;
+                    case 2:
+                        mRgba = ImageProcessor.rotateImage90(mRgba);
+                        processImageAndSearchMatches(mRgba);
+                        rotationState = 3;
+                        break;
+                    case 3:
+                        mRgba = ImageProcessor.rotateImage270(mRgba);
+                        processImageAndSearchMatches(mRgba);
+                        rotationState = 0;
+                        break;
+                }
+            } else {
+                processImageAndSearchMatches(mRgba);
+            }
         }
     }
 
-    /**
-     * Procesar la imagen y buscar coincidencias
-     * @param image Imagen capturada
-     */
     private void processImageAndSearchMatches(Mat image) {
         Bitmap bitmap = ImageProcessor.convertToBitmap(image);
         isProcessing = true;
-        Handler handler = new Handler(Looper.getMainLooper());
 
         executor.execute(() -> {
             String result = readImageText.processImage(bitmap);
-            handler.post(() -> handleImageProcessingResult(result));
+            mainHandler.post(() -> handleImageProcessingResult(result));
         });
     }
 
-    /**
-     * Manejar el resultado del procesamiento de la imagen
-     */
     private void handleImageProcessingResult(String result) {
         String finalResult = Tools.cleanupText(result);
         Map<String, Object> searchResult = Tools.searchSimilarity(finalResult, dbManager.getReadableDatabase());
@@ -155,7 +149,8 @@ public class MedicineRecognitionPresenter {
         activity.runOnUiThread(() -> {
             if (!matches.isEmpty()) {
                 if (multiples) {
-                    ttsManager.speak("Se detectaron varios medicamentos. Por favor, seleccione solo uno.");
+                    String msg = "Se detectaron varios medicamentos. Por favor, seleccione solo uno.";
+                    announceMessage(msg); // ✅ CAMBIADO
                 } else {
                     StringBuilder sb = new StringBuilder();
                     for (Pair<String, String> match : matches) {
@@ -165,8 +160,9 @@ public class MedicineRecognitionPresenter {
                         }
                         sb.append("\n");
                     }
-                    ttsManager.speak(sb.toString());
-                    tvResult.setText(sb.toString());
+
+                    String speechText = sb.toString();
+                    announceMedicine(speechText); // ✅ CAMBIADO
                 }
                 noDetectionCount = 0;
                 rotate = false;
@@ -175,10 +171,16 @@ public class MedicineRecognitionPresenter {
                 noDetectionCount++;
                 rotate = true;
                 tvResult.setText("");
+
+                // ✅ Limpiar descripción de accesibilidad cuando no hay detección
+                if (accessibilityHelper.isTalkBackEnabled()) {
+                    accessibilityHelper.clearAccessibilityDescription(tvResult);
+                }
             }
 
             if (noDetectionCount == 8) {
-                ttsManager.speak("No se pudo detectar. Mejore la posición de la cámara o del objeto.");
+                String msg = "No se pudo detectar. Mejore la posición de la cámara o del objeto.";
+                announceMessage(msg); // ✅ CAMBIADO
                 noDetectionCount = 0;
                 rotate = false;
             }
@@ -188,27 +190,112 @@ public class MedicineRecognitionPresenter {
     }
 
     /**
-     * Detener TTS y limpiar resultado con un doble tap
+     * ✅ NUEVO: Anuncia mensajes generales (iluminación, múltiples medicamentos, etc.)
      */
-    public void onDoubleTap() {
-        if (ttsManager.isSpeaking()) {
-            ttsManager.stop();
-            tvResult.setText("");
+    private void announceMessage(String message) {
+        Log.d(TAG, "📢 Anunciando mensaje: " + message);
+
+        tvResult.setText(message);
+        isAnnouncing = true;
+
+        if (accessibilityHelper.isTalkBackEnabled()) {
+            // ✅ Con TalkBack: usar sistema de accesibilidad
+            Log.d(TAG, "📱 TalkBack ACTIVO - usando AccessibilityHelper");
+            accessibilityHelper.announceForAccessibility(tvResult, message);
+
+            // ✅ Limpiar después de que TalkBack termine (8 segundos)
+            int duration = calculateSpeechDuration(message) + 3000;
+            mainHandler.postDelayed(() -> {
+                tvResult.setText("");
+                accessibilityHelper.clearAccessibilityDescription(tvResult);
+                isAnnouncing = false;
+                Log.d(TAG, "🧹 Mensaje limpiado (TalkBack)");
+            }, duration);
+        } else {
+            // ✅ Sin TalkBack: usar TTS normal
+            Log.d(TAG, "🔊 TalkBack INACTIVO - usando TTS");
+            voiceManager.speak(message);
+
+            int duration = calculateSpeechDuration(message);
+            mainHandler.postDelayed(() -> {
+                tvResult.setText("");
+                isAnnouncing = false;
+                Log.d(TAG, "🧹 Mensaje limpiado (TTS)");
+            }, duration);
         }
     }
 
     /**
-     * Sincronizar la base de datos local con Cloud Firestore.
-     * Crea registros de medicamentos y principios activos si no existen en la base de datos local.
-     * Se aplican validaciones para evitar duplicados y asegurar que los campos necesarios esten
-     * presentes en los documentos de Firestore.
-     *
-     * @param db Base de datos SQLite donde se almacenan los registros.
+     * ✅ NUEVO: Anuncia medicamentos detectados (más tiempo en pantalla)
      */
+    private void announceMedicine(String medicineInfo) {
+        Log.d(TAG, "💊 Anunciando medicamento: " + medicineInfo);
+
+        tvResult.setText(medicineInfo);
+        isAnnouncing = true;
+
+        if (accessibilityHelper.isTalkBackEnabled()) {
+            // ✅ Con TalkBack: usar sistema de accesibilidad
+            Log.d(TAG, "📱 TalkBack ACTIVO - usando AccessibilityHelper para medicamento");
+            accessibilityHelper.announceForAccessibility(tvResult, medicineInfo);
+
+            // ✅ Más tiempo para medicamentos (10-15 segundos)
+            int duration = calculateSpeechDuration(medicineInfo) + 5000;
+            mainHandler.postDelayed(() -> {
+                tvResult.setText("");
+                accessibilityHelper.clearAccessibilityDescription(tvResult);
+                isAnnouncing = false;
+                Log.d(TAG, "🧹 Medicamento limpiado (TalkBack)");
+            }, duration);
+        } else {
+            // ✅ Sin TalkBack: usar TTS normal
+            Log.d(TAG, "🔊 TalkBack INACTIVO - usando TTS para medicamento");
+            voiceManager.speak(medicineInfo);
+
+            int duration = calculateSpeechDuration(medicineInfo) + 1000;
+            mainHandler.postDelayed(() -> {
+                tvResult.setText("");
+                isAnnouncing = false;
+                Log.d(TAG, "🧹 Medicamento limpiado (TTS)");
+            }, duration);
+        }
+    }
+
+    /**
+     * ✅ Calcula duración estimada del habla
+     */
+    private int calculateSpeechDuration(String text) {
+        int wordCount = text.split("\\s+").length;
+
+        if (accessibilityHelper.isTalkBackEnabled()) {
+            // TalkBack es más rápido que TTS (~150 palabras/minuto)
+            int baseDuration = (int) ((wordCount / 2.5) * 1000);
+            return baseDuration + 2000; // 2 segundos de margen
+        } else {
+            // TTS es más lento (~120 palabras/minuto)
+            int baseDuration = (int) ((wordCount / 2.0) * 1000);
+            return baseDuration + 1000;
+        }
+    }
+
+    public void onDoubleTap() {
+        Log.d(TAG, "👆 Doble tap detectado");
+        voiceManager.stop();
+        tvResult.setText("");
+
+        // ✅ Limpiar también la descripción de accesibilidad
+        if (accessibilityHelper.isTalkBackEnabled()) {
+            accessibilityHelper.clearAccessibilityDescription(tvResult);
+        }
+
+        isAnnouncing = false;
+        mainHandler.removeCallbacksAndMessages(null);
+        Log.d(TAG, "✅ Voz detenida y pantalla limpia");
+    }
+
     public void syncWithFirestore(SQLiteDatabase db) {
         FirebaseFirestore firestore = FirebaseFirestore.getInstance();
 
-        // Medicamentos
         firestore.collection("medicamentos").get()
                 .addOnSuccessListener(query -> {
                     int nuevos = 0;
@@ -235,7 +322,6 @@ public class MedicineRecognitionPresenter {
                 })
                 .addOnFailureListener(e -> Toast.makeText(activity, "Error al sincronizar medicamentos", Toast.LENGTH_SHORT).show());
 
-        // Principios activos
         firestore.collection("principios_activos").get()
                 .addOnSuccessListener(query -> {
                     int nuevos = 0;
@@ -261,11 +347,8 @@ public class MedicineRecognitionPresenter {
                 .addOnFailureListener(e -> Toast.makeText(activity, "Error al sincronizar principios activos", Toast.LENGTH_SHORT).show());
     }
 
-    /**
-     * Liberar recursos al destruir el presenter.
-     */
     public void onDestroy() {
-        ttsManager.shutdown();
-        executor.shutdown();
+        mainHandler.removeCallbacksAndMessages(null);
+        if (executor != null) executor.shutdown();
     }
 }

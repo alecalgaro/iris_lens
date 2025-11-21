@@ -11,7 +11,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import com.example.irislens.R;
-import com.example.irislens.common.TextToSpeechManager;
 import com.example.irislens.display.presenter.DisplayRecognitionPresenter;
 import com.example.irislens.common.BaseSwipeActivity;
 import com.example.irislens.common.Functionalities;
@@ -34,7 +33,8 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
     private Mat mRgba;
     private TextView tvResult;
     private DisplayRecognitionPresenter presenter;
-    private TextToSpeechManager ttsManager;
+    private Handler handler;
+    private Runnable delayedSpeakTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,8 +45,9 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
+        handler = new Handler();
 
-        tvResult.setText("Reconocimiento de displays. Apunte la cámara hacia el display que desea reconocer.");
+        String message = "Reconocimiento de displays. Apunte la cámara hacia el display que desea reconocer.";
 
         permissionManager = new PermissionManager();
         permissionManager.getPermissions(this);
@@ -59,18 +60,23 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
 
             if (e.getMessage() != null) {
                 if (e.getMessage().contains("assets")) {
-                    Log.e(TAG, "Error relacionado con assets - verificar que los archivos detectorDisplay.tflite y labelsMoney.txt estén en assets/");
+                    Log.e(TAG, "Error relacionado con assets - verificar archivos en assets/");
                 } else if (e.getMessage().contains("model")) {
                     Log.e(TAG, "Error del modelo - verificar formato TensorFlow Lite");
                 }
             }
         }
 
-        ttsManager = new TextToSpeechManager(this);
-        new Handler().postDelayed(() -> {
-            ttsManager.speak("Reconocimiento de displays. " +
-                    "Apunte la cámara hacia el display que desea reconocer.");
-        }, 500);
+        // ✅ Usar speakAndShow con delay para que TTS esté listo
+        delayedSpeakTask = new Runnable() {
+            @Override
+            public void run() {
+                if (!isFinishing() && !isDestroyed()) {
+                    voiceManager.speakAndShow(tvResult, message);
+                }
+            }
+        };
+        handler.postDelayed(delayedSpeakTask, 500);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -100,7 +106,7 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
                     originalImage = com.example.irislens.common.ImageProcessor.rotateImage(originalImage);
                 }
 
-                if (presenter != null) {
+                if (presenter != null && !isFinishing()) {
                     presenter.processCameraFrame(originalImage);
                 }
 
@@ -112,18 +118,37 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (cameraBridgeViewBase != null) cameraBridgeViewBase.disableView();
+
+        // ✅ Detener todo cuando salimos
+        if (handler != null && delayedSpeakTask != null) {
+            handler.removeCallbacks(delayedSpeakTask);
+        }
+
+        if (cameraBridgeViewBase != null) {
+            cameraBridgeViewBase.disableView();
+        }
+
+        if (voiceManager != null) {
+            voiceManager.stop();
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (cameraBridgeViewBase != null) cameraBridgeViewBase.enableView();
+        if (cameraBridgeViewBase != null) {
+            cameraBridgeViewBase.enableView();
+        }
     }
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
+        Log.d(TAG, "🔴 onDestroy() llamado");
+
+        // ✅ Limpiar todo en orden
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
 
         if (cameraBridgeViewBase != null) {
             cameraBridgeViewBase.disableView();
@@ -133,14 +158,24 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
             presenter.onDestroy();
         }
 
-        if (ttsManager != null) {
-            ttsManager.shutdown();
+        // ✅ NO hacer shutdown del voiceManager aquí
+        // Es global y lo usan otras actividades
+        if (voiceManager != null) {
+            voiceManager.stop(); // Solo detener, no shutdown
         }
+
+        super.onDestroy();
+        Log.d(TAG, "✅ onDestroy() completado");
     }
 
     @Override
     protected void onDoubleTapDetected() {
-        if (presenter != null) presenter.onDoubleTap();
+        if (voiceManager != null) {
+            voiceManager.stopAndClear(tvResult);
+        }
+        if (presenter != null) {
+            presenter.onDoubleTap();
+        }
     }
 
     @Override

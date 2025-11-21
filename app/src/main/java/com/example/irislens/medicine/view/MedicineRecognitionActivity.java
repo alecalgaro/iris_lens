@@ -46,7 +46,7 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
     private MedicineRecognitionPresenter presenter;
 
     // Encargado de sintetizar voz a partir de texto
-    private TextToSpeechManager ttsManager;
+    //private TextToSpeechManager ttsManager;
 
     /**
      * Configura la camara, permisos y procesamiento de imagen
@@ -62,7 +62,8 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
-        tvResult.setText("Reconocimiento de medicamentos. Apunte la cámara hacia el objeto que desea reconocer.");
+        //tvResult.setText("Reconocimiento de medicamentos. Apunte la cámara hacia el objeto que desea reconocer.");
+        String message = "Reconocimiento de medicamentos. Apunte la cámara hacia el objeto que desea reconocer.";
 
         // Inicializar PermissionManager y solicitar permiso de camara
         permissionManager = new PermissionManager();
@@ -75,11 +76,10 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         presenter.initDatabase();
 
         // Mensaje de voz sobre la funcionalidad
-        ttsManager = new TextToSpeechManager(this);
+        //ttsManager = new TextToSpeechManager(this);
         // Espera breve para asegurar que TTS este listo
         new Handler().postDelayed(() -> {
-            ttsManager.speak("Reconocimiento de medicamentos. " +
-                    "Apunte la cámara hacia el objeto que desea reconocer.");
+            voiceManager.speakAndShow(tvResult, message);
         }, 500);
 
         // Mantener la pantalla encendida mientras esta actividad esta en primer plano
@@ -157,8 +157,8 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         }
         presenter.onDestroy();
 
-        if (ttsManager != null) {
-            ttsManager.shutdown();
+        if (voiceManager != null) {
+            voiceManager.stop();
         }
     }
 
@@ -168,11 +168,12 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
      */
     @Override
     protected void onDoubleTapDetected() {
+        if (voiceManager != null) {
+            voiceManager.stopAndClear(tvResult);
+        }
+        // También notificar al presenter
         if (presenter != null) {
             presenter.onDoubleTap();
-        }
-        if (ttsManager != null) {
-            ttsManager.stop();
         }
     }
 

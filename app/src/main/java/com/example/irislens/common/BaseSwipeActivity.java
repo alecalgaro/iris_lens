@@ -1,47 +1,36 @@
+// ════════════════════════════════════════════════════════════════
+// 2. BaseSwipeActivity.java - ACTUALIZADO
+// ════════════════════════════════════════════════════════════════
 package com.example.irislens.common;
 
 import android.os.Bundle;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.View;
-
-import com.example.irislens.R;
 
 import org.opencv.android.CameraActivity;
 
 /**
- * Actividad base que detecta gestos de deslizamiento (swipe) hacia izquierda y derecha
- * para cambiar entre funcionalidades
+ * Actividad base con gestor de voz integrado
  */
 public abstract class BaseSwipeActivity extends CameraActivity {
 
-    // Distancia minima en pixeles que debe recorrer el dedo horizontalmente
-    // para que el gesto sea considerado un "swipe" (deslizamiento)
     private static final int SWIPE_THRESHOLD = 100;
-
-    // Velocidad minima (en píxeles/segundo) que debe alcanzar el gesto para
-    // ser reconocido como un "swipe"
     private static final int SWIPE_VELOCITY_THRESHOLD = 100;
 
-    // Detecta gestos del usuario
     protected GestureDetector gestureDetector;
+    protected int currentFunctionalityIndex = 0;
 
-    // Indice actual de la funcionalidad (debe establecerse en cada actividad que herede de esta clase)
-    protected int currentFunctionalityIndex = 0; // se sobrescribe por cada actividad
+    // ✅ Gestor de voz compartido por todas las actividades
+    protected AppVoiceManager voiceManager;
 
-    /**
-     * Inicializa el detector de gestos
-     *
-     * @param savedInstanceState Estado anterior, si existe
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Inicializa el GestureDetector con soporte para swipe y doble tap
-        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+        // ✅ Obtener gestor de voz global (se inicializa solo la primera vez)
+        voiceManager = AppVoiceManager.getInstance(this);
 
-            // Detecta swipe horizontal
+        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
                 float diffX = e2.getX() - e1.getX();
@@ -59,7 +48,6 @@ public abstract class BaseSwipeActivity extends CameraActivity {
                 return false;
             }
 
-            // Detecta doble tap en pantalla (util, por ejemplo, para pausar un audio)
             @Override
             public boolean onDoubleTap(MotionEvent e) {
                 onDoubleTapDetected();
@@ -68,66 +56,39 @@ public abstract class BaseSwipeActivity extends CameraActivity {
         });
     }
 
-    /**
-     * Procesa eventos de toque, incluyendo gestos de swipe
-     * Intercepta todos los eventos táctiles del activity entero,
-     * por lo tanto, no se necesita una capa extra (touch_layer)
-     * para capturar los eventos de swipe o doble tap.
-     *
-     * @param ev Evento tactil
-     * @return true si el evento fue manejado
-     */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         boolean handled = gestureDetector.onTouchEvent(ev);
-        if (handled) return true; // el gesto fue procesado
+        if (handled) return true;
         return super.dispatchTouchEvent(ev);
     }
 
-    /**
-     * Maneja el gesto de swipe hacia la izquierda
-     * Lanza la siguiente funcionalidad
-     */
     protected void onSwipeLeft() {
         goToNext();
     }
 
-    /**
-     * Maneja el gesto de swipe hacia la derecha
-     * Lanza la funcionalidad anterior
-     */
     protected void onSwipeRight() {
         goToPrevious();
     }
 
-    /**
-     * Lanza la funcionalidad siguiente
-     */
     private void goToNext() {
         int nextIndex = Functionalities.getNextIndex(currentFunctionalityIndex);
         Functionalities.launch(this, nextIndex);
-        finish(); // Cierra la actividad actual
+        finish();
     }
 
-    /**
-     * Lanza la funcionalidad anterior
-     */
     private void goToPrevious() {
         int prevIndex = Functionalities.getPreviousIndex(currentFunctionalityIndex);
         Functionalities.launch(this, prevIndex);
-        finish(); // Cierra la actividad actual
+        finish();
     }
 
-    /**
-     * Finaliza esta actividad y libera recursos
-     */
     @Override
     protected void onDestroy() {
         super.onDestroy();
     }
 
     protected void onDoubleTapDetected() {
-        // No hace nada por defecto, se redefine en las
-        // actividades hijas (porque tiene que acceder a cada presenter)
+        // Las actividades hijas pueden sobrescribir esto
     }
 }

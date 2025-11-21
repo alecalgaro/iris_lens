@@ -13,18 +13,20 @@
         android:src="@drawable/logo_irislens_redondeado"
         android:contentDescription="Logo de Iris Lens"
         android:layout_marginBottom="24dp"
-        android:scaleType="centerCrop" />
+        android:scaleType="centerCrop"
+        android:importantForAccessibility="no" />
 
     <TextView
         android:id="@+id/tvWelcome"
         android:layout_width="327dp"
         android:layout_height="wrap_content"
-        android:contentDescription="Iris Lens le da la bienvenida. Deslice el dedo hacia la izquierda o derecha para cambiar de funcionalidad. Use doble toque para detener la voz."
+        android:contentDescription="Iris Lens le da la bienvenida. Deslice hacia la izquierda o derecha para cambiar de funcionalidad. Use doble toque para detener la voz."
         android:gravity="center"
         android:lineSpacingExtra="8dp"
-        android:text="Iris Lens le da la bienvenida. \n\nDeslice el dedo hacia la izquierda o derecha para cambiar de funcionalidad. \n\nUse doble toque para detener la voz."
+        android:text="Iris Lens le da la bienvenida. \n\nDeslice hacia la izquierda o derecha para cambiar de funcionalidad. \n\nUse doble toque para detener la voz."
         android:textAlignment="center"
         android:textColor="@android:color/white"
         android:textSize="24sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        android:importantForAccessibility="yes" />
 </LinearLayout>
