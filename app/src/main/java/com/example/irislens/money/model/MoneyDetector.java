@@ -102,7 +102,6 @@ public class MoneyDetector {
         // Obtiener la forma y tipo de la salida del modelo
         int[] outShape = interpreter.getOutputTensor(0).shape();
         DataType outType = interpreter.getOutputTensor(0).dataType();
-        //Log.d(TAG, "Output shape=" + Arrays.toString(outShape) + " dtype=" + outType);
 
         // Verificar que la salida tenga la forma esperada
         if (outShape.length != 3)

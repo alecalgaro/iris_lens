@@ -1,6 +1,3 @@
-// ════════════════════════════════════════════════════════════════
-// 1. DisplayRecognitionPresenter.java - VERSIÓN FINAL
-// ════════════════════════════════════════════════════════════════
 package com.example.irislens.display.presenter;
 
 import android.app.Activity;
@@ -35,22 +32,18 @@ import java.util.concurrent.Executors;
 
 public class DisplayRecognitionPresenter {
     private static final String TAG = "DisplayPresenter";
-
     private final Activity activity;
     private final TextView tvResult;
     private final DisplayDetector detector;
     private final AppVoiceManager voiceManager;
     private final ExecutorService executor;
     private final Handler mainHandler;
-
     private volatile boolean isProcessing = false;
     private volatile boolean isAnnouncing = false;
     private int frameCount = 0;
-
     private static final int NO_DETECTION_THRESHOLD = 8;
     private int noDetectionCount = 0;
     private String lastResultText = "";
-
     private static final float MEDIUM_CONFIDENCE_THRESHOLD = 0.55f;
     private static final float LOW_CONFIDENCE_THRESHOLD = 0.45f;
 
@@ -63,6 +56,9 @@ public class DisplayRecognitionPresenter {
         this.detector = new DisplayDetector(activity.getApplicationContext());
     }
 
+    /**
+     * Procesa un frame de la camara para detectar digitos en un display.
+     */
     public void processCameraFrame(Mat image) {
         if (isProcessing || isAnnouncing) {
             return;
@@ -100,6 +96,9 @@ public class DisplayRecognitionPresenter {
         }
     }
 
+    /**
+     * Maneja los resultados de la deteccion.
+     */
     private void handleDetection(List<DisplayDetector.DetectionResult> results,
                                  List<DisplayDetector.DetectionResult> rawResults) {
 
@@ -109,12 +108,12 @@ public class DisplayRecognitionPresenter {
             if (noDetectionCount >= NO_DETECTION_THRESHOLD) {
                 String msg = "No se detectaron dígitos. Acerque más la cámara al display.";
 
-                // ✅ Mostrar texto y hablar
+                // Mostrar texto y hablar
                 tvResult.setText(msg);
                 isAnnouncing = true;
                 voiceManager.speak(msg);
 
-                // ✅ Calcular duración y limpiar automáticamente
+                // Calcular duracion y limpiar automaticamente
                 int duration = calculateSpeechDuration(msg);
                 mainHandler.postDelayed(() -> {
                     tvResult.setText("");
@@ -140,16 +139,16 @@ public class DisplayRecognitionPresenter {
                 }
                 Log.d(TAG, logBuilder.toString());
 
-                // ✅ Mostrar texto coloreado
+                // Mostrar texto coloreado
                 setColoredText(displayResult);
                 lastResultText = displayResult.getPlainText();
 
-                // ✅ Hablar resultado
+                // Reproducir audio con resultado
                 String speechText = displayResult.getSpeechText();
                 isAnnouncing = true;
                 voiceManager.speak(speechText);
 
-                // ✅ Calcular duración y limpiar automáticamente
+                // Calcular duracion y limpiar automaticamente
                 int duration = calculateSpeechDuration(speechText);
                 mainHandler.postDelayed(() -> {
                     tvResult.setText("");
@@ -165,8 +164,7 @@ public class DisplayRecognitionPresenter {
     }
 
     /**
-     * ✅ Calcula la duración estimada del habla
-     * Basado en 150 palabras por minuto (promedio español)
+     * Calcula la duracion estimada del habla, basado en 150 palabras por minuto (promedio español)
      */
     private int calculateSpeechDuration(String text) {
         int wordCount = text.split("\\s+").length;
@@ -176,6 +174,9 @@ public class DisplayRecognitionPresenter {
         return baseDuration + 1000; // +1 segundo extra
     }
 
+    /**
+     * Construye el numero detectado a partir de los resultados.
+     */
     private DisplayResult buildNumberFromDetections(List<DisplayDetector.DetectionResult> results) {
         if (results.isEmpty()) return new DisplayResult();
 
@@ -209,6 +210,9 @@ public class DisplayRecognitionPresenter {
         return new DisplayResult(digits);
     }
 
+    /**
+     * Establece el texto coloreado en el TextView basado en los niveles de confianza.
+     */
     private void setColoredText(DisplayResult result) {
         String fullText = result.getDisplayText();
         SpannableString spannable = new SpannableString(fullText);
@@ -309,13 +313,13 @@ public class DisplayRecognitionPresenter {
     public void onDoubleTap() {
         Log.d(TAG, "👆 Doble tap detectado");
 
-        // ✅ Detener voz
+        // Detener voz
         voiceManager.stop();
 
-        // ✅ Limpiar texto
+        // Limpiar texto
         tvResult.setText("");
 
-        // ✅ Resetear flag y cancelar limpieza pendiente
+        // Resetear flag y cancelar limpieza pendiente
         isAnnouncing = false;
         mainHandler.removeCallbacksAndMessages(null);
 

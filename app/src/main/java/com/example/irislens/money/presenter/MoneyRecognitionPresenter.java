@@ -1,6 +1,3 @@
-// ════════════════════════════════════════════════════════════════
-// 2. MoneyRecognitionPresenter.java - VERSIÓN FINAL
-// ════════════════════════════════════════════════════════════════
 package com.example.irislens.money.presenter;
 
 import android.app.Activity;
@@ -55,6 +52,9 @@ public class MoneyRecognitionPresenter {
         this.detector = new MoneyDetector(activity.getApplicationContext());
     }
 
+    /**
+     * Procesa cada frame de la camara.
+     */
     public void processCameraFrame(Mat image) {
         if (isProcessing || isAnnouncing) {
             return;
@@ -91,6 +91,9 @@ public class MoneyRecognitionPresenter {
         }
     }
 
+    /**
+     * Maneja los resultados de la deteccion.
+     */
     private void handleDetection(List<MoneyDetector.DetectionResult> results) {
         if (results.isEmpty()) {
             noDetectionCount++;
@@ -98,12 +101,12 @@ public class MoneyRecognitionPresenter {
             if (noDetectionCount >= NO_DETECTION_THRESHOLD) {
                 String msg = "No se pudo detectar. Mejore la posición de la cámara o del objeto.";
 
-                // ✅ Mostrar y hablar
+                // Mostrar y reproducir audio
                 tvResult.setText(msg);
                 isAnnouncing = true;
                 voiceManager.speak(msg);
 
-                // ✅ Limpiar automáticamente
+                // Limpiar automaticamente
                 int duration = calculateSpeechDuration(msg);
                 mainHandler.postDelayed(() -> {
                     tvResult.setText("");
@@ -157,17 +160,17 @@ public class MoneyRecognitionPresenter {
                 ttsText.append(String.format("%d de %s ", count, simpleLabel));
             }
 
-            // ✅ Actualizar UI
+            // Actualizar UI
             lastResultText = displayText.toString().trim();
             tvResult.setText(lastResultText);
 
-            // ✅ Hablar
+            // Reproducir audio
             String speechText = ttsText.toString().trim();
             if (!speechText.isEmpty()) {
                 isAnnouncing = true;
                 voiceManager.speak(speechText);
 
-                // ✅ Limpiar automáticamente
+                // Limpiar automaticamente
                 int duration = calculateSpeechDuration(speechText);
                 mainHandler.postDelayed(() -> {
                     tvResult.setText("");
@@ -181,7 +184,7 @@ public class MoneyRecognitionPresenter {
     }
 
     /**
-     * ✅ Calcula duración estimada del habla
+     * Calcula duracion estimada del habla.
      */
     private int calculateSpeechDuration(String text) {
         int wordCount = text.split("\\s+").length;

@@ -1,6 +1,3 @@
-// ════════════════════════════════════════════════════════════════
-// 2. BaseSwipeActivity.java - ACTUALIZADO
-// ════════════════════════════════════════════════════════════════
 package com.example.irislens.common;
 
 import android.os.Bundle;
@@ -20,14 +17,14 @@ public abstract class BaseSwipeActivity extends CameraActivity {
     protected GestureDetector gestureDetector;
     protected int currentFunctionalityIndex = 0;
 
-    // ✅ Gestor de voz compartido por todas las actividades
+    // Gestor de voz compartido por todas las actividades
     protected AppVoiceManager voiceManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // ✅ Obtener gestor de voz global (se inicializa solo la primera vez)
+        // Obtener gestor de voz global (se inicializa solo la primera vez)
         voiceManager = AppVoiceManager.getInstance(this);
 
         gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {

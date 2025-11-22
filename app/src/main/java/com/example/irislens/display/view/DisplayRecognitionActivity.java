@@ -67,7 +67,7 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
             }
         }
 
-        // ✅ Usar speakAndShow con delay para que TTS esté listo
+        // Usar speakAndShow con delay para que TTS este listo
         delayedSpeakTask = new Runnable() {
             @Override
             public void run() {
@@ -119,7 +119,7 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
     protected void onPause() {
         super.onPause();
 
-        // ✅ Detener todo cuando salimos
+        // Detener cuando salimos
         if (handler != null && delayedSpeakTask != null) {
             handler.removeCallbacks(delayedSpeakTask);
         }
@@ -145,7 +145,7 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
     protected void onDestroy() {
         Log.d(TAG, "🔴 onDestroy() llamado");
 
-        // ✅ Limpiar todo en orden
+        // Limpiar en orden
         if (handler != null) {
             handler.removeCallbacksAndMessages(null);
         }
@@ -158,8 +158,7 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
             presenter.onDestroy();
         }
 
-        // ✅ NO hacer shutdown del voiceManager aquí
-        // Es global y lo usan otras actividades
+        // No hacer shutdown del voiceManager aca. Es global y lo usan otras actividades
         if (voiceManager != null) {
             voiceManager.stop(); // Solo detener, no shutdown
         }

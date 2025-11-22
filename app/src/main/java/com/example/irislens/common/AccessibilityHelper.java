@@ -1,7 +1,6 @@
 package com.example.irislens.common;
 
 import android.content.Context;
-import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.Log;
 import android.view.View;

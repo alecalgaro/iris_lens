@@ -11,7 +11,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import com.example.irislens.R;
-import com.example.irislens.common.TextToSpeechManager;
 import com.example.irislens.money.presenter.MoneyRecognitionPresenter;
 import com.example.irislens.common.BaseSwipeActivity;
 import com.example.irislens.common.Functionalities;
@@ -34,7 +33,6 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
     private Mat mRgba;
     private TextView tvResult;
     private MoneyRecognitionPresenter presenter;
-    //private TextToSpeechManager ttsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +43,6 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
-        //tvResult.setText("Reconocimiento de billetes. Apunte la cámara hacia el billete que desea reconocer.");
         String message = "Reconocimiento de billetes. Apunte la cámara hacia el billete que desea reconocer.";
 
         permissionManager = new PermissionManager();
@@ -67,8 +64,6 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
             }
         }
 
-        // Mensaje de voz sobre la funcionalidad
-        //ttsManager = new TextToSpeechManager(this);
         // Espera breve para asegurar que TTS este listo
         new Handler().postDelayed(() -> {
             voiceManager.speakAndShow(tvResult, message);

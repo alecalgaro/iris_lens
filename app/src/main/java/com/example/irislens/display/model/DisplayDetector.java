@@ -46,6 +46,11 @@ public class DisplayDetector {
         void onDetectionError(@NonNull Exception error);
     }
 
+    /**
+     * Constructor que carga el modelo TFLite y las etiquetas.
+     * @param context Contexto de la aplicación.
+     * @throws IOException Si hay un error al cargar el modelo o las etiquetas.
+     */
     public DisplayDetector(@NonNull Context context) throws IOException {
         Log.d(TAG, "Inicializando DisplayDetector...");
         MappedByteBuffer model = FileUtil.loadMappedFile(context, MODEL_PATH);
@@ -62,6 +67,11 @@ public class DisplayDetector {
         Log.d(TAG, "✅ Labels cargadas (" + numClasses + "): " + labels);
     }
 
+    /**
+     * Realiza la deteccion de digitos en la imagen proporcionada.
+     * @param bitmap Imagen de entrada como Bitmap.
+     * @param callback Callback para manejar los resultados o errores.
+     */
     public void detect(@NonNull Bitmap bitmap, @NonNull DetectionCallback callback) {
         executor.execute(() -> {
             try {
@@ -74,6 +84,9 @@ public class DisplayDetector {
         });
     }
 
+    /**
+     * Realiza la deteccion interna y devuelve los resultados.
+     */
     private List<DetectionResult>[] detectInternal(@NonNull Bitmap bitmap) {
         long t0 = System.currentTimeMillis();
         ByteBuffer input = preprocess(bitmap);
@@ -112,6 +125,11 @@ public class DisplayDetector {
         return new List[]{finalDetections, rawResults};
     }
 
+    /**
+     * Preprocesa la imagen de entrada para el modelo.
+     * @param src Bitmap de entrada.
+     * @return ByteBuffer con la imagen preprocesada.
+     */
     private ByteBuffer preprocess(@NonNull Bitmap src) {
         Bitmap resized = Bitmap.createScaledBitmap(src, INPUT_SIZE, INPUT_SIZE, true);
         ByteBuffer buf = ByteBuffer.allocateDirect(1 * INPUT_SIZE * INPUT_SIZE * 3 * 4);
@@ -130,6 +148,9 @@ public class DisplayDetector {
         return buf;
     }
 
+    /**
+     * Parsea las predicciones del modelo en formato C-first.
+     */
     private List<DetectionResult> parsePreds_CFirst(float[][] preds, int origW, int origH, float threshold) {
         List<DetectionResult> out = new ArrayList<>();
         int N = preds[0].length;
@@ -146,6 +167,9 @@ public class DisplayDetector {
         return out;
     }
 
+    /**
+     * Parsea las predicciones del modelo en formato P-first.
+     */
     private List<DetectionResult> parsePreds_PFirst(float[][] preds, int origW, int origH, float threshold) {
         List<DetectionResult> out = new ArrayList<>();
         int N = preds.length;
@@ -162,6 +186,9 @@ public class DisplayDetector {
         return out;
     }
 
+    /**
+     * Añade una caja delimitadora a la lista de resultados.
+     */
     private void addBox(List<DetectionResult> list, float cx, float cy, float w, float h,
                         int classId, float score, int origW, int origH) {
         float left = cx - w/2f, top = cy - h/2f, right = cx + w/2f, bottom = cy + h/2f;
@@ -177,10 +204,16 @@ public class DisplayDetector {
         list.add(new DetectionResult(label, score, box));
     }
 
+    /**
+     * Clampea un valor entre un minimo y un maximo.
+     */
     private float clamp(float v, float lo, float hi) {
         return Math.max(lo, Math.min(hi, v));
     }
 
+    /**
+     * Aplica Non-Maximum Suppression (NMS) agnostico a la clase.
+     */
     private List<DetectionResult> nmsClassAgnostic(List<DetectionResult> dets, float iouTh) {
         if (dets.isEmpty()) return dets;
         Collections.sort(dets, (a,b) -> Float.compare(b.confidence, a.confidence));
@@ -198,6 +231,9 @@ public class DisplayDetector {
         return kept;
     }
 
+    /**
+     * Calcula el Intersection over Union (IoU) entre dos rectangulos.
+     */
     private float iou(RectF a, RectF b) {
         float ix1 = Math.max(a.left, b.left), iy1 = Math.max(a.top, b.top);
         float ix2 = Math.min(a.right, b.right), iy2 = Math.min(a.bottom, b.bottom);
@@ -209,11 +245,17 @@ public class DisplayDetector {
         return union>0? inter/union:0f;
     }
 
+    /**
+     * Cierra el interprete y el ejecutor.
+     */
     public void close() {
         try { interpreter.close(); } catch (Throwable ignore) {}
         executor.shutdown();
     }
 
+    /**
+     * Resultado de una deteccion.
+     */
     public static class DetectionResult {
         private final String label;
         private final float confidence;

@@ -3,8 +3,6 @@ package com.example.irislens.medicine.view;
 import android.os.Bundle;
 import android.os.Handler;
 
-import com.example.irislens.common.ImageProcessor;
-import com.example.irislens.common.TextToSpeechManager;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.Surface;
@@ -45,8 +43,6 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
     // Encapsula la logica de presentacion para el reconocimiento de medicamentos
     private MedicineRecognitionPresenter presenter;
 
-    // Encargado de sintetizar voz a partir de texto
-    //private TextToSpeechManager ttsManager;
 
     /**
      * Configura la camara, permisos y procesamiento de imagen
@@ -62,7 +58,6 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
 
         cameraBridgeViewBase = findViewById(R.id.camera_view);
         tvResult = findViewById(R.id.tvResult);
-        //tvResult.setText("Reconocimiento de medicamentos. Apunte la cámara hacia el objeto que desea reconocer.");
         String message = "Reconocimiento de medicamentos. Apunte la cámara hacia el objeto que desea reconocer.";
 
         // Inicializar PermissionManager y solicitar permiso de camara
@@ -75,8 +70,6 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
         // Inicializar la base de datos y sincronizarla con Firestore
         presenter.initDatabase();
 
-        // Mensaje de voz sobre la funcionalidad
-        //ttsManager = new TextToSpeechManager(this);
         // Espera breve para asegurar que TTS este listo
         new Handler().postDelayed(() -> {
             voiceManager.speakAndShow(tvResult, message);

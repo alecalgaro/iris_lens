@@ -1,6 +1,3 @@
-// ════════════════════════════════════════════════════════════════
-// AppVoiceManager.java - CON LIMPIEZA GARANTIZADA
-// ════════════════════════════════════════════════════════════════
 package com.example.irislens.common;
 
 import android.content.Context;
@@ -24,8 +21,6 @@ public class AppVoiceManager {
     private TextToSpeechManager ttsManager;
     private boolean isTalkBackActive;
     private boolean isInitialized = false;
-
-    // ✅ Referencia débil para evitar memory leaks
     private WeakReference<TextView> currentTextView;
     private Runnable pendingClearTask;
 
@@ -48,9 +43,12 @@ public class AppVoiceManager {
         return instance;
     }
 
+    public boolean isTTSInitialized() {
+        return isInitialized && ttsManager != null && ttsManager.isReady();
+    }
+
     /**
-     * ✅ Habla y mantiene el texto visible hasta terminar
-     * CON LIMPIEZA GARANTIZADA
+     * Reproduce audio y muestra texto con limpieza automatica.
      */
     public void speakAndShow(TextView textView, String message) {
         if (textView == null || message == null) return;
@@ -59,10 +57,10 @@ public class AppVoiceManager {
         Log.d(TAG, "📝 speakAndShow() llamado");
         Log.d(TAG, "   Mensaje: \"" + message + "\"");
 
-        // ✅ Cancelar cualquier limpieza pendiente
+        // Cancelar cualquier limpieza pendiente
         cancelPendingClear();
 
-        // ✅ Mostrar texto inmediatamente
+        // Mostrar texto inmediatamente
         textView.setText(message);
         currentTextView = new WeakReference<>(textView);
         Log.d(TAG, "✅ Texto mostrado en pantalla");
@@ -73,32 +71,31 @@ public class AppVoiceManager {
             return;
         }
 
-        // ✅ Inicializar TTS si es necesario
+        // Inicializar TTS si es necesario
         if (!isInitialized) {
             Log.d(TAG, "🔄 Inicializando TTS...");
             initializeTTS();
         }
 
-        // ✅ Calcular duración ANTES de hablar
+        // Calcular duracion antes de hablar
         final int duration = calculateSpeechDuration(message);
         Log.d(TAG, "⏱️ Duración estimada: " + duration + "ms");
 
-        // ✅ Verificar si TTS está listo AHORA
+        // Verificar si TTS esta listo
         if (ttsManager != null && ttsManager.isReady()) {
             Log.d(TAG, "✅ TTS listo INMEDIATAMENTE, hablando...");
             speakAndScheduleClear(textView, message, duration);
         } else {
             Log.d(TAG, "⏳ TTS no está listo, esperando...");
 
-            // ✅ Verificar cada 200ms hasta que esté listo (máximo 3 segundos)
+            // Verificar cada 200ms hasta que este listo (maximo 3 segundos)
             checkTTSReadyAndSpeak(textView, message, duration, 0);
         }
-
         Log.d(TAG, "═══════════════════════════════════════════════════");
     }
 
     /**
-     * ✅ Verifica recursivamente si TTS está listo
+     * Verifica recursivamente si TTS esta listo.
      */
     private void checkTTSReadyAndSpeak(TextView textView, String message, int duration, int attempts) {
         if (attempts > 15) { // 15 intentos x 200ms = 3 segundos máximo
@@ -120,18 +117,17 @@ public class AppVoiceManager {
     }
 
     /**
-     * ✅ Habla y programa la limpieza
+     * Reproduce audio y programa la limpieza.
      */
     private void speakAndScheduleClear(TextView textView, String message, int duration) {
         Log.d(TAG, "🗣️ Comenzando a hablar: \"" + message + "\"");
         ttsManager.speak(message);
-
-        // ✅ Programar limpieza
+        // Programar limpieza
         scheduleClear(textView, duration);
     }
 
     /**
-     * ✅ Programa la limpieza del texto
+     * Programa la limpieza del texto.
      */
     private void scheduleClear(TextView textView, int delay) {
         Log.d(TAG, "⏰ Programando limpieza en " + delay + "ms");
@@ -156,7 +152,7 @@ public class AppVoiceManager {
     }
 
     /**
-     * ✅ Cancela limpieza pendiente
+     * Cancela limpieza pendiente.
      */
     private void cancelPendingClear() {
         if (pendingClearTask != null) {
@@ -169,7 +165,7 @@ public class AppVoiceManager {
     /**
      * Inicializa el TTS
      */
-    private void initializeTTS() {
+    public void initializeTTS() {
         if (isInitialized) return;
 
         Log.d(TAG, "✅ Creando TextToSpeechManager");
@@ -178,7 +174,7 @@ public class AppVoiceManager {
     }
 
     /**
-     * ✅ Versión simple: solo habla
+     * Version simple: solo reproduce audio.
      */
     public void speak(String message) {
         if (isTalkBackActive) {
@@ -199,17 +195,17 @@ public class AppVoiceManager {
     }
 
     /**
-     * Calcula duración estimada del habla
-     * TTS en español es más lento que el habla natural
+     * Calcula duracion estimada del habla.
+     * TTS en español es mas lento que el habla natural.
      */
     private int calculateSpeechDuration(String text) {
         int wordCount = text.split("\\s+").length;
 
-        // ✅ AJUSTADO: TTS español habla a ~120 palabras/minuto (2 palabras/segundo)
+        // TTS español habla a ~120 palabras/minuto (2 palabras/segundo)
         // = 500ms por palabra (más lento que habla natural)
         int baseDuration = (int) ((wordCount / 2.0) * 1000);
 
-        // ✅ Agregar 4 segundos de margen (era 3, ahora 4)
+        // Agregar 4 segundos de margen (era 3, ahora 4)
         int totalDuration = baseDuration + 4000;
 
         Log.d(TAG, "📊 Cálculo duración:");

@@ -1,6 +1,3 @@
-// ════════════════════════════════════════════════════════════════
-// MedicineRecognitionPresenter.java - CON SOPORTE TALKBACK
-// ════════════════════════════════════════════════════════════════
 package com.example.irislens.medicine.presenter;
 
 import android.app.Activity;
@@ -77,6 +74,9 @@ public class MedicineRecognitionPresenter {
         return ImageProcessor.rotateImage(image);
     }
 
+    /**
+     * Procesa un frame de la camara para detectar medicamentos.
+     */
     public void processCameraFrame(Mat image) {
         if (isProcessing || isAnnouncing) {
             return;
@@ -98,7 +98,7 @@ public class MedicineRecognitionPresenter {
 
             if (meanBrightness < 10) {
                 String msg = "Debe estar en un lugar más iluminado para evitar errores de detección";
-                announceMessage(msg); // ✅ CAMBIADO
+                announceMessage(msg);
                 return;
             }
 
@@ -130,6 +130,9 @@ public class MedicineRecognitionPresenter {
         }
     }
 
+    /**
+     * Procesa la imagen y busca coincidencias en la base de datos.
+     */
     private void processImageAndSearchMatches(Mat image) {
         Bitmap bitmap = ImageProcessor.convertToBitmap(image);
         isProcessing = true;
@@ -140,6 +143,9 @@ public class MedicineRecognitionPresenter {
         });
     }
 
+    /**
+     * Maneja el resultado del procesamiento de la imagen.
+     */
     private void handleImageProcessingResult(String result) {
         String finalResult = Tools.cleanupText(result);
         Map<String, Object> searchResult = Tools.searchSimilarity(finalResult, dbManager.getReadableDatabase());
@@ -150,7 +156,7 @@ public class MedicineRecognitionPresenter {
             if (!matches.isEmpty()) {
                 if (multiples) {
                     String msg = "Se detectaron varios medicamentos. Por favor, seleccione solo uno.";
-                    announceMessage(msg); // ✅ CAMBIADO
+                    announceMessage(msg);
                 } else {
                     StringBuilder sb = new StringBuilder();
                     for (Pair<String, String> match : matches) {
@@ -162,7 +168,7 @@ public class MedicineRecognitionPresenter {
                     }
 
                     String speechText = sb.toString();
-                    announceMedicine(speechText); // ✅ CAMBIADO
+                    announceMedicine(speechText);
                 }
                 noDetectionCount = 0;
                 rotate = false;
@@ -172,7 +178,7 @@ public class MedicineRecognitionPresenter {
                 rotate = true;
                 tvResult.setText("");
 
-                // ✅ Limpiar descripción de accesibilidad cuando no hay detección
+                // Limpiar descripcion de accesibilidad cuando no hay detección
                 if (accessibilityHelper.isTalkBackEnabled()) {
                     accessibilityHelper.clearAccessibilityDescription(tvResult);
                 }
@@ -180,7 +186,7 @@ public class MedicineRecognitionPresenter {
 
             if (noDetectionCount == 8) {
                 String msg = "No se pudo detectar. Mejore la posición de la cámara o del objeto.";
-                announceMessage(msg); // ✅ CAMBIADO
+                announceMessage(msg);
                 noDetectionCount = 0;
                 rotate = false;
             }
@@ -190,7 +196,7 @@ public class MedicineRecognitionPresenter {
     }
 
     /**
-     * ✅ NUEVO: Anuncia mensajes generales (iluminación, múltiples medicamentos, etc.)
+     * Anuncia mensajes generales (iluminacion, multiples medicamentos, etc.)
      */
     private void announceMessage(String message) {
         Log.d(TAG, "📢 Anunciando mensaje: " + message);
@@ -199,11 +205,11 @@ public class MedicineRecognitionPresenter {
         isAnnouncing = true;
 
         if (accessibilityHelper.isTalkBackEnabled()) {
-            // ✅ Con TalkBack: usar sistema de accesibilidad
+            // Con TalkBack: usar sistema de accesibilidad
             Log.d(TAG, "📱 TalkBack ACTIVO - usando AccessibilityHelper");
             accessibilityHelper.announceForAccessibility(tvResult, message);
 
-            // ✅ Limpiar después de que TalkBack termine (8 segundos)
+            // Limpiar despues de que TalkBack termine (8 segundos)
             int duration = calculateSpeechDuration(message) + 3000;
             mainHandler.postDelayed(() -> {
                 tvResult.setText("");
@@ -212,7 +218,7 @@ public class MedicineRecognitionPresenter {
                 Log.d(TAG, "🧹 Mensaje limpiado (TalkBack)");
             }, duration);
         } else {
-            // ✅ Sin TalkBack: usar TTS normal
+            // in TalkBack: usar TTS normal
             Log.d(TAG, "🔊 TalkBack INACTIVO - usando TTS");
             voiceManager.speak(message);
 
@@ -226,7 +232,7 @@ public class MedicineRecognitionPresenter {
     }
 
     /**
-     * ✅ NUEVO: Anuncia medicamentos detectados (más tiempo en pantalla)
+     * Anuncia medicamentos detectados (mas tiempo en pantalla)
      */
     private void announceMedicine(String medicineInfo) {
         Log.d(TAG, "💊 Anunciando medicamento: " + medicineInfo);
@@ -235,11 +241,11 @@ public class MedicineRecognitionPresenter {
         isAnnouncing = true;
 
         if (accessibilityHelper.isTalkBackEnabled()) {
-            // ✅ Con TalkBack: usar sistema de accesibilidad
+            // Con TalkBack: usar sistema de accesibilidad
             Log.d(TAG, "📱 TalkBack ACTIVO - usando AccessibilityHelper para medicamento");
             accessibilityHelper.announceForAccessibility(tvResult, medicineInfo);
 
-            // ✅ Más tiempo para medicamentos (10-15 segundos)
+            // Mas tiempo para medicamentos (10-15 segundos)
             int duration = calculateSpeechDuration(medicineInfo) + 5000;
             mainHandler.postDelayed(() -> {
                 tvResult.setText("");
@@ -248,7 +254,7 @@ public class MedicineRecognitionPresenter {
                 Log.d(TAG, "🧹 Medicamento limpiado (TalkBack)");
             }, duration);
         } else {
-            // ✅ Sin TalkBack: usar TTS normal
+            // Sin TalkBack: usar TTS normal
             Log.d(TAG, "🔊 TalkBack INACTIVO - usando TTS para medicamento");
             voiceManager.speak(medicineInfo);
 
@@ -262,7 +268,7 @@ public class MedicineRecognitionPresenter {
     }
 
     /**
-     * ✅ Calcula duración estimada del habla
+     * Calcula duracion estimada del habla
      */
     private int calculateSpeechDuration(String text) {
         int wordCount = text.split("\\s+").length;
@@ -283,7 +289,7 @@ public class MedicineRecognitionPresenter {
         voiceManager.stop();
         tvResult.setText("");
 
-        // ✅ Limpiar también la descripción de accesibilidad
+        // Limpiar la descripcion de accesibilidad
         if (accessibilityHelper.isTalkBackEnabled()) {
             accessibilityHelper.clearAccessibilityDescription(tvResult);
         }
@@ -293,6 +299,9 @@ public class MedicineRecognitionPresenter {
         Log.d(TAG, "✅ Voz detenida y pantalla limpia");
     }
 
+    /**
+     * Sincroniza la base de datos local con Firestore.
+     */
     public void syncWithFirestore(SQLiteDatabase db) {
         FirebaseFirestore firestore = FirebaseFirestore.getInstance();
 
