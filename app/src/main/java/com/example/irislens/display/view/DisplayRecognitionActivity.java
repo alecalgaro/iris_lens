@@ -68,15 +68,21 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
         }
 
         // Usar speakAndShow con delay para que TTS este listo
-        delayedSpeakTask = new Runnable() {
-            @Override
-            public void run() {
-                if (!isFinishing() && !isDestroyed()) {
-                    voiceManager.speakAndShow(tvResult, message);
-                }
-            }
-        };
-        handler.postDelayed(delayedSpeakTask, 500);
+//        delayedSpeakTask = new Runnable() {
+//            @Override
+//            public void run() {
+//                if (!isFinishing() && !isDestroyed()) {
+//                    voiceManager.speakAndShow(tvResult, message);
+//                }
+//            }
+//        };
+//        handler.postDelayed(delayedSpeakTask, 500);
+
+        // Espera breve para asegurar que TTS este listo
+        new Handler().postDelayed(() -> {
+            presenter.announceMessage(message);
+        }, 1000);
+
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 

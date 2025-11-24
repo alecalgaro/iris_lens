@@ -12,6 +12,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import com.example.irislens.R;
+import com.example.irislens.common.AccessibilityHelper;
 import com.example.irislens.common.AppVoiceManager;
 import com.example.irislens.common.ImageProcessor;
 import com.example.irislens.money.model.MoneyDetector;
@@ -32,6 +33,7 @@ public class MoneyRecognitionPresenter {
     private final TextView tvResult;
     private final MoneyDetector detector;
     private final AppVoiceManager voiceManager;
+    private final AccessibilityHelper accessibilityHelper;
     private final ExecutorService executor;
     private final Handler mainHandler;
 
@@ -47,6 +49,7 @@ public class MoneyRecognitionPresenter {
         this.activity = activity;
         this.tvResult = tvResult;
         this.voiceManager = AppVoiceManager.getInstance(activity);
+        this.accessibilityHelper = new AccessibilityHelper(activity);
         this.executor = Executors.newSingleThreadExecutor();
         this.mainHandler = new Handler(Looper.getMainLooper());
         this.detector = new MoneyDetector(activity.getApplicationContext());
@@ -103,16 +106,7 @@ public class MoneyRecognitionPresenter {
 
                 // Mostrar y reproducir audio
                 tvResult.setText(msg);
-                isAnnouncing = true;
-                voiceManager.speak(msg);
-
-                // Limpiar automaticamente
-                int duration = calculateSpeechDuration(msg);
-                mainHandler.postDelayed(() -> {
-                    tvResult.setText("");
-                    isAnnouncing = false;
-                    Log.d(TAG, "🧹 Texto limpiado automáticamente");
-                }, duration);
+                announceMessage(msg);
 
                 Log.d(TAG, "⚠️ No se pudo detectar tras " + NO_DETECTION_THRESHOLD + " frames");
                 noDetectionCount = 0;
@@ -167,16 +161,7 @@ public class MoneyRecognitionPresenter {
             // Reproducir audio
             String speechText = ttsText.toString().trim();
             if (!speechText.isEmpty()) {
-                isAnnouncing = true;
-                voiceManager.speak(speechText);
-
-                // Limpiar automaticamente
-                int duration = calculateSpeechDuration(speechText);
-                mainHandler.postDelayed(() -> {
-                    tvResult.setText("");
-                    isAnnouncing = false;
-                    Log.d(TAG, "🧹 Texto limpiado automáticamente");
-                }, duration);
+                announceMessage(speechText);
             }
         }
 
@@ -184,12 +169,57 @@ public class MoneyRecognitionPresenter {
     }
 
     /**
-     * Calcula duracion estimada del habla.
+     * Anuncia mensajes generales (iluminacion, multiples medicamentos, etc.)
+     */
+    public void announceMessage(String message) {
+        Log.d(TAG, "📢 Anunciando mensaje: " + message);
+
+        tvResult.setText(message);
+        isAnnouncing = true;
+
+        if (accessibilityHelper.isTalkBackEnabled()) {
+            // Con TalkBack: usar sistema de accesibilidad
+            Log.d(TAG, "📱 TalkBack ACTIVO - usando AccessibilityHelper");
+            accessibilityHelper.announceForAccessibility(tvResult, message);
+
+            // Limpiar despues de que TalkBack termine
+            int duration = calculateSpeechDuration(message);
+            mainHandler.postDelayed(() -> {
+                accessibilityHelper.clearAccessibilityDescription(tvResult);
+                isAnnouncing = false;
+                tvResult.setFocusable(false);
+                tvResult.setText("");
+                Log.d(TAG, "🧹 Mensaje limpiado (TalkBack)");
+            }, duration);
+        } else {
+            // Sin TalkBack: usar TTS normal
+            Log.d(TAG, "🔊 TalkBack INACTIVO - usando TTS");
+            voiceManager.speak(message);
+
+            int duration = calculateSpeechDuration(message);
+            mainHandler.postDelayed(() -> {
+                tvResult.setText("");
+                isAnnouncing = false;
+                Log.d(TAG, "🧹 Mensaje limpiado (TTS)");
+            }, duration);
+        }
+    }
+
+    /**
+     * Calcula duracion estimada del habla
      */
     private int calculateSpeechDuration(String text) {
         int wordCount = text.split("\\s+").length;
-        int baseDuration = (int) ((wordCount / 2.5) * 1000);
-        return baseDuration + 1000;
+
+        if (accessibilityHelper.isTalkBackEnabled()) {
+            // TalkBack es mas rapido que TTS (~150 palabras/minuto)
+            int baseDuration = (int) ((wordCount / 2.5) * 1000);
+            return baseDuration;
+        } else {
+            // TTS es mas lento (~120 palabras/minuto)
+            int baseDuration = (int) ((wordCount / 2.0) * 1000);
+            return baseDuration;
+        }
     }
 
     private String processLabel(String rawLabel) {

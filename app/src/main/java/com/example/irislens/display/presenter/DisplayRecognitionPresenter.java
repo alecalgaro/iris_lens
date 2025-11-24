@@ -16,6 +16,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import com.example.irislens.R;
+import com.example.irislens.common.AccessibilityHelper;
 import com.example.irislens.common.AppVoiceManager;
 import com.example.irislens.common.ImageProcessor;
 import com.example.irislens.display.model.DisplayDetector;
@@ -36,6 +37,7 @@ public class DisplayRecognitionPresenter {
     private final TextView tvResult;
     private final DisplayDetector detector;
     private final AppVoiceManager voiceManager;
+    private final AccessibilityHelper accessibilityHelper;
     private final ExecutorService executor;
     private final Handler mainHandler;
     private volatile boolean isProcessing = false;
@@ -51,6 +53,7 @@ public class DisplayRecognitionPresenter {
         this.activity = activity;
         this.tvResult = tvResult;
         this.voiceManager = AppVoiceManager.getInstance(activity);
+        this.accessibilityHelper = new AccessibilityHelper(activity);
         this.executor = Executors.newSingleThreadExecutor();
         this.mainHandler = new Handler(Looper.getMainLooper());
         this.detector = new DisplayDetector(activity.getApplicationContext());
@@ -110,8 +113,9 @@ public class DisplayRecognitionPresenter {
 
                 // Mostrar texto y hablar
                 tvResult.setText(msg);
-                isAnnouncing = true;
-                voiceManager.speak(msg);
+                announceMessage(msg);
+//                isAnnouncing = true;
+//                voiceManager.speak(msg);
 
                 // Calcular duracion y limpiar automaticamente
                 int duration = calculateSpeechDuration(msg);
@@ -145,8 +149,11 @@ public class DisplayRecognitionPresenter {
 
                 // Reproducir audio con resultado
                 String speechText = displayResult.getSpeechText();
-                isAnnouncing = true;
-                voiceManager.speak(speechText);
+                if (!speechText.isEmpty()) {
+                    announceMessage(speechText);
+                }
+//                isAnnouncing = true;
+//                voiceManager.speak(speechText);
 
                 // Calcular duracion y limpiar automaticamente
                 int duration = calculateSpeechDuration(speechText);
@@ -164,14 +171,57 @@ public class DisplayRecognitionPresenter {
     }
 
     /**
-     * Calcula la duracion estimada del habla, basado en 150 palabras por minuto (promedio español)
+     * Anuncia mensajes generales (iluminacion, multiples medicamentos, etc.)
+     */
+    public void announceMessage(String message) {
+        Log.d(TAG, "📢 Anunciando mensaje: " + message);
+
+        tvResult.setText(message);
+        isAnnouncing = true;
+
+        if (accessibilityHelper.isTalkBackEnabled()) {
+            // Con TalkBack: usar sistema de accesibilidad
+            Log.d(TAG, "📱 TalkBack ACTIVO - usando AccessibilityHelper");
+            accessibilityHelper.announceForAccessibility(tvResult, message);
+
+            // Limpiar despues de que TalkBack termine
+            int duration = calculateSpeechDuration(message);
+            mainHandler.postDelayed(() -> {
+                accessibilityHelper.clearAccessibilityDescription(tvResult);
+                isAnnouncing = false;
+                tvResult.setFocusable(false);
+                tvResult.setText("");
+                Log.d(TAG, "🧹 Mensaje limpiado (TalkBack)");
+            }, duration);
+        } else {
+            // Sin TalkBack: usar TTS normal
+            Log.d(TAG, "🔊 TalkBack INACTIVO - usando TTS");
+            voiceManager.speak(message);
+
+            int duration = calculateSpeechDuration(message);
+            mainHandler.postDelayed(() -> {
+                tvResult.setText("");
+                isAnnouncing = false;
+                Log.d(TAG, "🧹 Mensaje limpiado (TTS)");
+            }, duration);
+        }
+    }
+
+    /**
+     * Calcula duracion estimada del habla
      */
     private int calculateSpeechDuration(String text) {
         int wordCount = text.split("\\s+").length;
-        // 150 palabras/minuto = 2.5 palabras/segundo
-        // Agregar 1 segundo de margen de seguridad
-        int baseDuration = (int) ((wordCount / 2.5) * 1000);
-        return baseDuration + 1000; // +1 segundo extra
+
+        if (accessibilityHelper.isTalkBackEnabled()) {
+            // TalkBack es mas rapido que TTS (~150 palabras/minuto)
+            int baseDuration = (int) ((wordCount / 2.5) * 1000);
+            return baseDuration + 1000;
+        } else {
+            // TTS es mas lento (~120 palabras/minuto)
+            int baseDuration = (int) ((wordCount / 2.0) * 1000);
+            return baseDuration + 1000;
+        }
     }
 
     /**

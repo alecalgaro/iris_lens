@@ -7,6 +7,7 @@ import android.view.WindowManager;
 import android.view.MotionEvent;
 import android.util.Log;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -66,8 +67,8 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
 
         // Espera breve para asegurar que TTS este listo
         new Handler().postDelayed(() -> {
-            voiceManager.speakAndShow(tvResult, message);
-        }, 500);
+            presenter.announceMessage(message);
+        }, 1000);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 

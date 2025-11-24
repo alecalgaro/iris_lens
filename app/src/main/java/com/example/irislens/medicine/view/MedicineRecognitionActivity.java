@@ -72,8 +72,8 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
 
         // Espera breve para asegurar que TTS este listo
         new Handler().postDelayed(() -> {
-            voiceManager.speakAndShow(tvResult, message);
-        }, 500);
+            presenter.announceMessage(message);
+        }, 1000);
 
         // Mantener la pantalla encendida mientras esta actividad esta en primer plano
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -97,6 +97,11 @@ public class MedicineRecognitionActivity extends BaseSwipeActivity {
                 mRgba.release();
             }
 
+            /**
+             * Procesa cada frame capturado por la camara
+             * @param inputFrame Frame de la camara
+             * @return Frame procesado para mostrar en pantalla
+             */
             @Override
             public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
                 // Obtener la imagen en formato RGBA

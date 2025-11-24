@@ -39,7 +39,7 @@ public class MedicineRecognitionPresenter {
     private final TextView tvResult;
     private final DatabaseManager dbManager;
     private final AppVoiceManager voiceManager;
-    private final AccessibilityHelper accessibilityHelper; // ✅ NUEVO
+    private final AccessibilityHelper accessibilityHelper;
     private final ReadImageText readImageText;
     private final ExecutorService executor;
     private final Handler mainHandler;
@@ -56,7 +56,7 @@ public class MedicineRecognitionPresenter {
         this.tvResult = tvResult;
         this.dbManager = new DatabaseManager(activity.getApplicationContext());
         this.voiceManager = AppVoiceManager.getInstance(activity);
-        this.accessibilityHelper = new AccessibilityHelper(activity); // ✅ NUEVO
+        this.accessibilityHelper = new AccessibilityHelper(activity);
         this.readImageText = new ReadImageText(activity.getApplicationContext());
         this.executor = Executors.newSingleThreadExecutor();
         this.mainHandler = new Handler(Looper.getMainLooper());
@@ -198,7 +198,7 @@ public class MedicineRecognitionPresenter {
     /**
      * Anuncia mensajes generales (iluminacion, multiples medicamentos, etc.)
      */
-    private void announceMessage(String message) {
+    public void announceMessage(String message) {
         Log.d(TAG, "📢 Anunciando mensaje: " + message);
 
         tvResult.setText(message);
@@ -209,16 +209,17 @@ public class MedicineRecognitionPresenter {
             Log.d(TAG, "📱 TalkBack ACTIVO - usando AccessibilityHelper");
             accessibilityHelper.announceForAccessibility(tvResult, message);
 
-            // Limpiar despues de que TalkBack termine (8 segundos)
-            int duration = calculateSpeechDuration(message) + 3000;
+            // Limpiar despues de que TalkBack termine
+            int duration = calculateSpeechDuration(message);
             mainHandler.postDelayed(() -> {
                 tvResult.setText("");
                 accessibilityHelper.clearAccessibilityDescription(tvResult);
                 isAnnouncing = false;
+                tvResult.setFocusable(false);
                 Log.d(TAG, "🧹 Mensaje limpiado (TalkBack)");
             }, duration);
         } else {
-            // in TalkBack: usar TTS normal
+            // Sin TalkBack: usar TTS normal
             Log.d(TAG, "🔊 TalkBack INACTIVO - usando TTS");
             voiceManager.speak(message);
 
@@ -245,12 +246,12 @@ public class MedicineRecognitionPresenter {
             Log.d(TAG, "📱 TalkBack ACTIVO - usando AccessibilityHelper para medicamento");
             accessibilityHelper.announceForAccessibility(tvResult, medicineInfo);
 
-            // Mas tiempo para medicamentos (10-15 segundos)
-            int duration = calculateSpeechDuration(medicineInfo) + 5000;
+            int duration = calculateSpeechDuration(medicineInfo);
             mainHandler.postDelayed(() -> {
                 tvResult.setText("");
                 accessibilityHelper.clearAccessibilityDescription(tvResult);
                 isAnnouncing = false;
+                tvResult.setFocusable(false);
                 Log.d(TAG, "🧹 Medicamento limpiado (TalkBack)");
             }, duration);
         } else {
@@ -258,7 +259,7 @@ public class MedicineRecognitionPresenter {
             Log.d(TAG, "🔊 TalkBack INACTIVO - usando TTS para medicamento");
             voiceManager.speak(medicineInfo);
 
-            int duration = calculateSpeechDuration(medicineInfo) + 1000;
+            int duration = calculateSpeechDuration(medicineInfo);
             mainHandler.postDelayed(() -> {
                 tvResult.setText("");
                 isAnnouncing = false;
@@ -274,11 +275,11 @@ public class MedicineRecognitionPresenter {
         int wordCount = text.split("\\s+").length;
 
         if (accessibilityHelper.isTalkBackEnabled()) {
-            // TalkBack es más rápido que TTS (~150 palabras/minuto)
+            // TalkBack es mas rapido que TTS (~150 palabras/minuto)
             int baseDuration = (int) ((wordCount / 2.5) * 1000);
-            return baseDuration + 2000; // 2 segundos de margen
+            return baseDuration + 1000; //
         } else {
-            // TTS es más lento (~120 palabras/minuto)
+            // TTS es mas lento (~120 palabras/minuto)
             int baseDuration = (int) ((wordCount / 2.0) * 1000);
             return baseDuration + 1000;
         }
