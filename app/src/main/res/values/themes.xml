@@ -6,4 +6,17 @@
     </style>
 
     <style name="Theme.IrisLens" parent="Base.Theme.IrisLens" />
+
+    <style name="manualSection">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:lineSpacingExtra">10dp</item>
+        <item name="android:paddingBottom">32dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:importantForAccessibility">yes</item>
+        <item name="android:focusable">true</item>
+        <item name="android:focusableInTouchMode">true</item>
+    </style>
 </resources>

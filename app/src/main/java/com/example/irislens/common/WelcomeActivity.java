@@ -19,10 +19,13 @@ public class WelcomeActivity extends BaseSwipeActivity {
         currentFunctionalityIndex = Functionalities.WELCOME;
         tvWelcome = findViewById(R.id.tvWelcome);
 
-        // Inicializar el TTS
         AppVoiceManager.getInstance(this).initializeTTS();
 
-        // Llama al metodo que espera a que el TTS este inicializado
+        // Detener cualquier audio residual de la actividad anterior
+        if (voiceManager != null) {
+            voiceManager.stop();
+        }
+
         welcome_message();
     }
 
@@ -38,22 +41,23 @@ public class WelcomeActivity extends BaseSwipeActivity {
                             "Use doble toque para detener la voz.");
                     mensajeBienvenidaReproducido = true;
                 } else {
-                    welcome_message(); // Vuelve a consultar en 300 ms
+                    welcome_message();
                 }
             }
-        }, 300);
+        }, 600);
     }
 
     @Override
     protected void onDoubleTapDetected() {
         // Detener voz si esta hablando
         if (voiceManager != null) {
-            voiceManager.stopAndClear(tvWelcome);
+            voiceManager.stop();
         }
     }
 
     @Override
     protected void onDestroy() {
+        handler.removeCallbacksAndMessages(null); // Cancelar todos los callbacks pendientes
         super.onDestroy();
     }
 }

@@ -176,7 +176,11 @@ public class MedicineRecognitionPresenter {
             } else {
                 noDetectionCount++;
                 rotate = true;
-                tvResult.setText("");
+
+                // Solo limpiar si no hay un mensaje activo en pantalla
+                if (!isAnnouncing) {
+                    tvResult.setText("");
+                }
 
                 // Limpiar descripcion de accesibilidad cuando no hay detección
                 if (accessibilityHelper.isTalkBackEnabled()) {

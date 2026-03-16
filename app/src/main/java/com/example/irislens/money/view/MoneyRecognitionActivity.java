@@ -46,6 +46,7 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
         tvResult = findViewById(R.id.tvResult);
         String message = "Reconocimiento de billetes. Apunte la cámara hacia el billete que desea reconocer.";
 
+        // Inicializar PermissionManager y solicitar permiso de camara
         permissionManager = new PermissionManager();
         permissionManager.getPermissions(this);
 

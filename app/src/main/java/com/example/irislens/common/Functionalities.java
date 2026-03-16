@@ -10,6 +10,7 @@ import java.util.List;
 import com.example.irislens.medicine.view.MedicineRecognitionActivity;
 import com.example.irislens.money.view.MoneyRecognitionActivity;
 import com.example.irislens.display.view.DisplayRecognitionActivity;
+import com.example.irislens.common.ManualActivity;
 
 /**
  * Clase que gestiona las funcionalidades disponibles de la aplicacion.
@@ -22,15 +23,18 @@ public class Functionalities {
     public static final int MEDICINE = 1;
     public static final int MONEY = 2;
     public static final int DISPLAY = 3;
+    public static final int MANUAL = 4;
 
     // Tag para log
     private static final String TAG = "Functionalities";
 
     // Lista de nombres correspondientes a las funcionalidades
     private static final String[] NAMES = {
+            "Bienvenida",
             "Reconocimiento de medicamentos",
             "Reconocimiento de billetes",
-            "Reconocimiento de displays"
+            "Reconocimiento de displays",
+            "Manual de usuario"
     };
 
     // Lista de clases correspondientes a las funcionalidades
@@ -38,7 +42,8 @@ public class Functionalities {
             WelcomeActivity.class,
             MedicineRecognitionActivity.class,
             MoneyRecognitionActivity.class,
-            DisplayRecognitionActivity.class
+            DisplayRecognitionActivity.class,
+            ManualActivity.class
     );
 
     /**
