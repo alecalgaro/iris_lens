@@ -60,7 +60,7 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
 
             if (e.getMessage() != null) {
                 if (e.getMessage().contains("assets")) {
-                    Log.e(TAG, "Error relacionado con assets - verificar archivos en assets/");
+                    Log.e(TAG, "Error relacionado con assets - verificar que los archivos detectorDisplay_small.tflite o detectorDisplay_nano.tflite, y labelsDisplay.txt estén en assets/");
                 } else if (e.getMessage().contains("model")) {
                     Log.e(TAG, "Error del modelo - verificar formato TensorFlow Lite");
                 }

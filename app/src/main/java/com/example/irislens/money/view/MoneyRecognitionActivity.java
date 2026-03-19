@@ -59,7 +59,7 @@ public class MoneyRecognitionActivity extends BaseSwipeActivity {
             // Mostrar información más detallada del error
             if (e.getMessage() != null) {
                 if (e.getMessage().contains("assets")) {
-                    Log.e(TAG, "Error relacionado con assets - verificar que los archivos detectorMoney.tflite y labelsMoney.txt estén en assets/");
+                    Log.e(TAG, "Error relacionado con assets - verificar que los archivos detectorMoney_small.tflite o detectorMoney_nano.tflite, y labelsMoney.txt estén en assets/");
                 } else if (e.getMessage().contains("model")) {
                     Log.e(TAG, "Error del modelo - verificar formato TensorFlow Lite");
                 }
