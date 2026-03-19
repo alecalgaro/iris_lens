@@ -29,7 +29,7 @@
 
         <TextView
             android:id="@+id/section_interaction"
-            android:text="Interacción:\nLa aplicación guía al usuario con mensajes de voz, textos en pantalla y sonidos. También informa si el objeto fue reconocido o si es necesario mejorar la iluminación."
+            android:text="Interacción:\nLa aplicación guía al usuario con mensajes de voz, textos en pantalla y sonidos. También informa si el objeto fue reconocido o si es necesario mejorar la posición de la cámara o del objeto."
             style="@style/manualSection"/>
 
         <TextView

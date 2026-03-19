@@ -1,6 +1,7 @@
 package com.example.irislens.common;
 
 import android.accessibilityservice.AccessibilityServiceInfo;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
@@ -13,11 +14,10 @@ import com.example.irislens.R;
 public class ManualActivity extends BaseSwipeActivity {
 
     private Handler handler = new Handler();
-
     private TextView[] sections;
     private int currentSection = 0;
-
     private ScrollView scrollView;
+    private boolean soundPlayed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,7 +25,6 @@ public class ManualActivity extends BaseSwipeActivity {
         setContentView(R.layout.activity_manual);
 
         currentFunctionalityIndex = Functionalities.MANUAL;
-
         scrollView = findViewById(R.id.manualScroll);
 
         sections = new TextView[]{
@@ -33,9 +32,16 @@ public class ManualActivity extends BaseSwipeActivity {
                 findViewById(R.id.section_intro),
                 findViewById(R.id.section_navigation),
                 findViewById(R.id.section_interaction),
-                findViewById(R.id.section_function),
+                findViewById(R.id.section_function),   // ← verificar que este ID exista en el XML
                 findViewById(R.id.section_support)
         };
+
+        // 🔍 Verificar que ninguna sección sea null
+        for (int i = 0; i < sections.length; i++) {
+            if (sections[i] == null) {
+                android.util.Log.e("ManualActivity", "⚠️ sections[" + i + "] es NULL — revisar ID en XML");
+            }
+        }
 
         AppVoiceManager.getInstance(this).initializeTTS();
 
@@ -44,90 +50,99 @@ public class ManualActivity extends BaseSwipeActivity {
         }
 
         setupTouchReading();
+        startReadingFrom(0);
+    }
+
+    // =========================
+    // 🔑 MÉTODO CENTRAL
+    // Todo arranque de lectura pasa por aquí
+    // =========================
+
+    private void startReadingFrom(int fromIndex) {
+        handler.removeCallbacksAndMessages(null);
+        soundPlayed = false;
+        currentSection = fromIndex;
+
+        if (voiceManager != null) {
+            voiceManager.stop();
+        }
 
         if (isTalkBackEnabled()) {
-            startTalkBackReading();
+            handler.postDelayed(this::readNextSectionTalkBack, 800);
         } else {
-            readSectionsSequentially();
+            handler.postDelayed(() -> {
+                if (voiceManager != null && voiceManager.isTTSInitialized()) {
+                    readNextSection();
+                } else {
+                    // TTS todavía no listo, reintentar
+                    handler.postDelayed(() -> startReadingFrom(currentSection), 400);
+                }
+            }, 600);
         }
     }
 
-    private void startTalkBackReading() {
-
-        handler.postDelayed(() -> readNextSectionTalkBack(), 800);
-
-    }
+    // =========================
+    // 🔊 LECTURA CON TALKBACK
+    // Usa voiceManager (NO announceForAccessibility)
+    // para tener control real del fin → sonido confiable
+    // =========================
 
     private void readNextSectionTalkBack() {
-
         if (currentSection >= sections.length) {
+            playEndSoundOnce();
             return;
         }
 
         TextView section = sections[currentSection];
-
-        highlightSection(section);
-
-        section.requestFocus();
-
-        section.announceForAccessibility(section.getText());
-
-        int delay = Math.max(6000, section.getText().length() * 90);
-
-        handler.postDelayed(() -> {
-
+        if (section == null) {
+            // Sección inválida, saltar
             currentSection++;
             readNextSectionTalkBack();
-
-        }, delay);
-    }
-
-    private boolean isTalkBackEnabled() {
-
-        AccessibilityManager am =
-                (AccessibilityManager) getSystemService(ACCESSIBILITY_SERVICE);
-
-        if (am == null || !am.isEnabled()) {
-            return false;
-        }
-
-        for (AccessibilityServiceInfo service :
-                am.getEnabledAccessibilityServiceList(
-                        AccessibilityServiceInfo.FEEDBACK_SPOKEN)) {
-
-            if (service.getId().contains("talkback")) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private void readSectionsSequentially() {
-
-        handler.postDelayed(() -> {
-
-            if (voiceManager != null && voiceManager.isTTSInitialized()) {
-                readNextSection();
-            } else {
-                readSectionsSequentially();
-            }
-
-        }, 600);
-    }
-
-    private void readNextSection() {
-
-        if (currentSection >= sections.length) {
             return;
         }
-
-        TextView section = sections[currentSection];
 
         highlightSection(section);
 
         String text = section.getText().toString();
+        if (voiceManager != null) {
+            voiceManager.speak(text);
+        }
 
+        waitSpeechFinishesTalkBack();
+    }
+
+    private void waitSpeechFinishesTalkBack() {
+        handler.postDelayed(() -> {
+            if (voiceManager != null && voiceManager.isSpeaking()) {
+                waitSpeechFinishesTalkBack();
+            } else {
+                currentSection++;
+                readNextSectionTalkBack();
+            }
+        }, 300);
+    }
+
+    // =========================
+    // 🔊 LECTURA SIN TALKBACK
+    // =========================
+
+    private void readNextSection() {
+        if (currentSection >= sections.length) {
+            playEndSoundOnce();
+            return;
+        }
+
+        TextView section = sections[currentSection];
+        if (section == null) {
+            // Sección inválida, saltar
+            currentSection++;
+            readNextSection();
+            return;
+        }
+
+        highlightSection(section);
+
+        String text = section.getText().toString();
         if (voiceManager != null) {
             voiceManager.speak(text);
         }
@@ -136,91 +151,124 @@ public class ManualActivity extends BaseSwipeActivity {
     }
 
     private void waitUntilSpeechFinishes() {
-
         handler.postDelayed(() -> {
-
             if (voiceManager != null && voiceManager.isSpeaking()) {
-
-                waitUntilSpeechFinishes(); // sigue esperando
-
+                waitUntilSpeechFinishes();
             } else {
-
                 currentSection++;
                 readNextSection();
-
             }
-
         }, 300);
     }
 
-    private void highlightSection(TextView section) {
-
-        for (TextView tv : sections) {
-            tv.setBackgroundColor(0x00000000);
-        }
-
-        section.setBackgroundColor(0x33FFFFFF);
-
-        section.sendAccessibilityEvent(
-                android.view.accessibility.AccessibilityEvent.TYPE_VIEW_FOCUSED
-        );
-
-        scrollView.post(() ->
-                scrollView.smoothScrollTo(0, section.getTop())
-        );
-    }
+    // =========================
+    // 👆 TAP EN PÁRRAFO
+    // Lee desde ese párrafo hasta el final → suena al terminar
+    // =========================
 
     private void setupTouchReading() {
-
         for (int i = 0; i < sections.length; i++) {
-
             int index = i;
             TextView tv = sections[i];
+
+            if (tv == null) continue; // protección extra
 
             tv.setFocusable(true);
             tv.setFocusableInTouchMode(true);
 
-            // Detecta cuando TalkBack enfoca el elemento (1 toque)
+            // TalkBack: resaltar al enfocar con 1 toque
             tv.setAccessibilityDelegate(new View.AccessibilityDelegate() {
                 @Override
                 public void sendAccessibilityEvent(View host, int eventType) {
                     super.sendAccessibilityEvent(host, eventType);
-
                     if (eventType ==
                             android.view.accessibility.AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED) {
-
-                        currentSection = index;
                         highlightSection(tv);
                     }
                 }
             });
 
-            // Acción cuando el usuario hace doble toque
-            tv.setOnClickListener(v -> {
-
-                if (voiceManager != null) {
-
-                    voiceManager.stop();
-
-                    currentSection = index;
-
-                    highlightSection(tv);
-
-                    voiceManager.speak(tv.getText().toString());
-                }
-
-            });
-
+            // Click / doble tap con TalkBack:
+            // arranca lectura desde este párrafo hacia abajo
+            tv.setOnClickListener(v -> startReadingFrom(index));
         }
     }
 
+    // =========================
+    // 🎯 UI
+    // =========================
+
+    private void highlightSection(TextView section) {
+        for (TextView tv : sections) {
+            if (tv != null) tv.setBackgroundColor(0x00000000);
+        }
+        section.setBackgroundColor(0x33FFFFFF);
+        section.sendAccessibilityEvent(
+                android.view.accessibility.AccessibilityEvent.TYPE_VIEW_FOCUSED
+        );
+        scrollView.post(() ->
+                scrollView.smoothScrollTo(0, section.getTop())
+        );
+    }
+
+    // =========================
+    // 🔊 SONIDO FINAL
+    // =========================
+
+    private void playEndSoundOnce() {
+        if (soundPlayed) return;
+        soundPlayed = true;
+        handler.postDelayed(this::playEndSound, 200);
+    }
+
+    private void playEndSound() {
+        MediaPlayer mediaPlayer = MediaPlayer.create(this, R.raw.captura);
+        if (mediaPlayer != null) {
+            mediaPlayer.start();
+            mediaPlayer.setOnCompletionListener(MediaPlayer::release);
+        }
+    }
+
+    // =========================
+    // 🔍 DETECCIÓN TALKBACK
+    // =========================
+
+    private boolean isTalkBackEnabled() {
+        AccessibilityManager am =
+                (AccessibilityManager) getSystemService(ACCESSIBILITY_SERVICE);
+        if (am == null || !am.isEnabled()) return false;
+        for (AccessibilityServiceInfo service :
+                am.getEnabledAccessibilityServiceList(
+                        AccessibilityServiceInfo.FEEDBACK_SPOKEN)) {
+            if (service.getId().contains("talkback")) return true;
+        }
+        return false;
+    }
+
+    // =========================
+    // 🎯 GESTOS
+    // =========================
+
     @Override
     protected void onDoubleTapDetected() {
-
+        handler.removeCallbacksAndMessages(null);
+        soundPlayed = false;
         if (voiceManager != null) {
             voiceManager.stop();
         }
+    }
 
+    // =========================
+    // 🔄 CICLO DE VIDA
+    // =========================
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        handler.removeCallbacksAndMessages(null);
+        if (voiceManager != null) {
+            voiceManager.stop();
+        }
     }
 
     @Override
