@@ -73,12 +73,12 @@ public class MoneyRecognitionPresenter {
                 mediaPlayer.setOnCompletionListener(MediaPlayer::release);
             }
 
-            // Verificar brillo antes de procesar
-            androidx.core.util.Pair<org.opencv.core.Mat, Double> processed = ImageProcessor.preprocessImage(image);
-            double meanBrightness = processed.second;
+
+            // Calcular brillo medio
+            double meanBrightness = ImageProcessor.calculateMeanBrightness(image);
 
             // Verificar brillo bajo
-            if (meanBrightness < 10) {
+            if (meanBrightness < 50) {
                 activity.runOnUiThread(() -> announceMessage("El objeto no se distingue correctamente, aleje un poco la cámara o el objeto."));
                 return;
             }

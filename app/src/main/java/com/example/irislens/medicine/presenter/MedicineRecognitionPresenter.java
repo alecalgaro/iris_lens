@@ -97,7 +97,7 @@ public class MedicineRecognitionPresenter {
             double meanBrightness = processedImageAndBrightness.second;
 
             // Verificar brillo bajo
-            if (meanBrightness < 10) {
+            if (meanBrightness < 50) {
                 activity.runOnUiThread(() -> announceMessage("El objeto no se distingue correctamente, aleje un poco la cámara o el objeto."));
                 return;
             }
