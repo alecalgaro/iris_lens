@@ -15,14 +15,14 @@ public class PermissionManager {
     private static final int CAMERA_PERMISSION_REQUEST = 101;
 
     private static final String PREFS = "permission_prefs";
-    private static final String KEY_PERMISSION_REQUESTED = "camera_requested";
+    private static final String KEY_DENIED_COUNT = "camera_denied_count";
 
     /**
      * Solicita permiso de cámara
      */
     public void getPermissions(Activity activity) {
 
-        // Ya concedido
+        // Ya tiene permiso
         if (activity.checkSelfPermission(Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
 
@@ -34,40 +34,37 @@ public class PermissionManager {
                 Activity.MODE_PRIVATE
         );
 
-        boolean alreadyRequested =
-                prefs.getBoolean(KEY_PERMISSION_REQUESTED, false);
+        int deniedCount =
+                prefs.getInt(KEY_DENIED_COUNT, 0);
 
         /**
-         * Android ya bloqueó el popup
+         * Primeros intentos:
+         * mostrar popup normal dentro de la app
          */
-        if (alreadyRequested
-                && !activity.shouldShowRequestPermissionRationale(
-                Manifest.permission.CAMERA)) {
+        if (deniedCount < 2) {
 
-            Intent intent = new Intent(
-                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                    Uri.fromParts(
-                            "package",
-                            activity.getPackageName(),
-                            null
-                    )
+            activity.requestPermissions(
+                    new String[]{Manifest.permission.CAMERA},
+                    CAMERA_PERMISSION_REQUEST
             );
-
-            activity.startActivity(intent);
 
             return;
         }
 
-        // Marcar como solicitado
-        prefs.edit()
-                .putBoolean(KEY_PERMISSION_REQUESTED, true)
-                .apply();
-
-        // Mostrar popup normal
-        activity.requestPermissions(
-                new String[]{Manifest.permission.CAMERA},
-                CAMERA_PERMISSION_REQUEST
+        /**
+         * Android probablemente ya bloqueó el popup:
+         * abrir configuraciones
+         */
+        Intent intent = new Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.fromParts(
+                        "package",
+                        activity.getPackageName(),
+                        null
+                )
         );
+
+        activity.startActivity(intent);
     }
 
     /**
@@ -84,14 +81,32 @@ public class PermissionManager {
             return;
         }
 
+        SharedPreferences prefs = activity.getSharedPreferences(
+                PREFS,
+                Activity.MODE_PRIVATE
+        );
+
         // Permiso concedido
         if (grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
+            // Resetear contador
+            prefs.edit()
+                    .putInt(KEY_DENIED_COUNT, 0)
+                    .apply();
+
             return;
         }
 
-        // Permiso rechazado
+        // Incrementar cantidad de rechazos
+        int deniedCount =
+                prefs.getInt(KEY_DENIED_COUNT, 0);
+
+        prefs.edit()
+                .putInt(KEY_DENIED_COUNT, deniedCount + 1)
+                .apply();
+
+        // Cerrar app
         activity.finishAffinity();
     }
 }
