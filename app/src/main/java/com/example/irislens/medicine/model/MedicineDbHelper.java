@@ -14,15 +14,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-/**
- * Clase que extiende SQLiteOpenHelper para manejar la creacion y actualizacion
- * de la base de datos de medicamentos.
- * Utiliza MedicineContract para definir la estructura de las tablas y crea los datos iniciales
- * a partir de un archivo JSON almacenado en los assets de la aplicacion.
- */
 public class MedicineDbHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "medicamentos_db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2; // subido de 1 a 2 para agregar firestore_id
     private final Context mContext;
 
     public MedicineDbHelper(Context context) {
@@ -32,32 +26,31 @@ public class MedicineDbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
+        // firestore_id: identificador estable de Firestore, permite detectar cambios de nombre
         String SQL_CREATE_MEDICINE =
                 "CREATE TABLE " + MedicineContract.MedicineEntry.TABLE_NAME + " (" +
                         MedicineContract.MedicineEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                        MedicineContract.MedicineEntry.COLUMN_NAME + " TEXT NOT NULL UNIQUE, " +
+                        MedicineContract.MedicineEntry.COLUMN_FIRESTORE_ID + " TEXT UNIQUE, " +
+                        MedicineContract.MedicineEntry.COLUMN_NAME + " TEXT NOT NULL, " +
                         MedicineContract.MedicineEntry.COLUMN_DESCRIPTION + " TEXT);";
 
         String SQL_CREATE_DRUG =
                 "CREATE TABLE " + MedicineContract.ActiveIngredient.TABLE_NAME + " (" +
                         MedicineContract.ActiveIngredient._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                        MedicineContract.ActiveIngredient.COLUMN_NAME + " TEXT NOT NULL UNIQUE);";
+                        MedicineContract.ActiveIngredient.COLUMN_FIRESTORE_ID + " TEXT UNIQUE, " +
+                        MedicineContract.ActiveIngredient.COLUMN_NAME + " TEXT NOT NULL);";
 
         db.execSQL(SQL_CREATE_MEDICINE);
         db.execSQL(SQL_CREATE_DRUG);
 
-        // ---------- Creacion de datos iniciales en la BD a partir de archivos JSON ----------
-
-        // Cargar medicamentos en la base de datos desde "medicamentos.json"
+        // Cargar medicamentos desde "medicamentos.json" (sin firestore_id, seed local)
         try {
             AssetManager assetManager = mContext.getAssets();
             InputStream is = assetManager.open("medicamentos.json");
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
             StringBuilder jsonBuilder = new StringBuilder();
             String line;
-            while ((line = reader.readLine()) != null) {
-                jsonBuilder.append(line);
-            }
+            while ((line = reader.readLine()) != null) jsonBuilder.append(line);
             reader.close();
             is.close();
 
@@ -75,16 +68,14 @@ public class MedicineDbHelper extends SQLiteOpenHelper {
             e.printStackTrace();
         }
 
-        // Cargar principios activos en la base de datos desde "principios_activos.json"
+        // Cargar principios activos desde "principios_activos.json" (sin firestore_id, seed local)
         try {
             AssetManager assetManager = mContext.getAssets();
             InputStream is = assetManager.open("principios_activos.json");
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
             StringBuilder jsonBuilder = new StringBuilder();
             String line;
-            while ((line = reader.readLine()) != null) {
-                jsonBuilder.append(line);
-            }
+            while ((line = reader.readLine()) != null) jsonBuilder.append(line);
             reader.close();
             is.close();
 
@@ -99,7 +90,6 @@ public class MedicineDbHelper extends SQLiteOpenHelper {
         } catch (IOException | JSONException e) {
             e.printStackTrace();
         }
-
     }
 
     @Override

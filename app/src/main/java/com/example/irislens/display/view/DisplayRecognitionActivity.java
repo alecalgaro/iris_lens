@@ -173,13 +173,25 @@ public class DisplayRecognitionActivity extends BaseSwipeActivity {
         Log.d(TAG, "✅ onDestroy() completado");
     }
 
+    /**
+     * Heredada, cuando detecta doble tap, pausa el audio.
+     *
+     * El orden importa.
+     * - presenter.onDoubleTap() primero: setea doubleTapActive=true y cancela
+     *   sus postDelayed antes de que voiceManager limpie el estado compartido.
+     * - voiceManager.stopAndClear() después: detiene TTS y limpia el TextView.
+     *   Si fuera al revés, el presenter podría encontrar un estado inconsistente
+     *   (currentTextView=null en VoiceManager) cuando sus callbacks tardíos disparen.
+     */
     @Override
     protected void onDoubleTapDetected() {
-        if (voiceManager != null) {
-            voiceManager.stopAndClear(tvResult);
-        }
+        // 1. Primero: el presenter cancela sus callbacks y marca el flag
         if (presenter != null) {
             presenter.onDoubleTap();
+        }
+        // 2. Después: el voiceManager detiene el TTS y limpia el texto
+        if (voiceManager != null) {
+            voiceManager.stopAndClear(tvResult);
         }
     }
 

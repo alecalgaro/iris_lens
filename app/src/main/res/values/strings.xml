@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">IrisLens</string>
+
+    <string name="disclaimer_title">Aviso Legal</string>
+
+    <string name="disclaimer_text">Iris Lens es una herramienta de apoyo para personas con discapacidad visual.\n\nEl reconocimiento de medicamentos, billetes y displays puede contener errores debido a limitaciones del procesamiento de imagen o datos incompletos.\n\nEsta aplicación no reemplaza la consulta con un médico, farmacéutico u otro profesional de la salud.\n\nAnte cualquier duda sobre un medicamento, consulte siempre a un profesional.\n\nLos desarrolladores no se responsabilizan por decisiones tomadas en base a la información provista por la aplicación.\n\nAl continuar, usted acepta estos términos.</string>
+
+    <string name="disclaimer_accept">Acepto</string>
+    <string name="disclaimer_exit">Salir</string>
 </resources>

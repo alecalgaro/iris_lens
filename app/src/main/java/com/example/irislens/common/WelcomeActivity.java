@@ -1,5 +1,7 @@
 package com.example.irislens.common;
 
+import android.app.AlertDialog;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.widget.TextView;
@@ -8,8 +10,12 @@ import com.example.irislens.R;
 
 public class WelcomeActivity extends BaseSwipeActivity {
 
+    private static final String PREFS_NAME = "irislens_prefs";
+    private static final String KEY_DISCLAIMER_ACCEPTED = "disclaimer_accepted";
+
     private TextView tvWelcome;
     private boolean mensajeBienvenidaReproducido = false;
+    private boolean flujoInicializado = false;   // ← evita doble ejecución en onResume
     private Handler handler = new Handler();
 
     @Override
@@ -21,16 +27,92 @@ public class WelcomeActivity extends BaseSwipeActivity {
 
         AppVoiceManager.getInstance(this).initializeTTS();
 
-        // Detener cualquier audio residual de la actividad anterior
         if (voiceManager != null) {
             voiceManager.stop();
         }
+    }
 
-        welcome_message();
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // Si ya inicializamos el flujo en este ciclo de vida, no repetir
+        if (flujoInicializado) return;
+
+        // Esperar a que los permisos estén resueltos y el TTS listo antes de arrancar
+        handler.postDelayed(this::iniciarFlujo, 400);
     }
 
     /**
-     * Metodo que espera a que el TTS este inicializado para reproducir el mensaje de bienvenida.
+     * Punto de entrada del flujo: verifica permisos y luego muestra disclaimer o bienvenida.
+     * Se llama desde onResume con un pequeño delay para dar tiempo al TTS y a los permisos.
+     */
+    private void iniciarFlujo() {
+        // Si la cámara aún no tiene permiso, esperar — BaseSwipeActivity lo pedirá
+        // y onResume volverá a dispararse cuando el usuario responda
+        if (!tieneCamaraPermiso()) return;
+
+        // A partir de aquí el flujo ya está resuelto, no repetir
+        flujoInicializado = true;
+
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean disclaimerAceptado = prefs.getBoolean(KEY_DISCLAIMER_ACCEPTED, false);
+
+        if (!disclaimerAceptado) {
+            showDisclaimer(prefs);
+        } else {
+            welcome_message();
+        }
+    }
+
+    /**
+     * Verifica si el permiso de cámara ya fue concedido.
+     */
+    private boolean tieneCamaraPermiso() {
+        return checkSelfPermission(android.Manifest.permission.CAMERA)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * Muestra el diálogo de aviso legal la primera vez que se abre la app.
+     * Si el usuario acepta, guarda la preferencia y continúa.
+     * Si rechaza, cierra la app.
+     */
+    private void showDisclaimer(SharedPreferences prefs) {
+        String disclaimerTitle = getString(R.string.disclaimer_title);
+        String disclaimerText = getString(R.string.disclaimer_text);
+
+        // Leer el disclaimer por voz cuando el TTS esté listo
+        handler.postDelayed(() -> {
+            if (voiceManager != null && voiceManager.isTTSInitialized()) {
+                voiceManager.speak(disclaimerTitle + ". " + disclaimerText);
+            } else {
+                handler.postDelayed(() -> {
+                    if (voiceManager != null) {
+                        voiceManager.speak(disclaimerTitle + ". " + disclaimerText);
+                    }
+                }, 800);
+            }
+        }, 600);
+
+        new AlertDialog.Builder(this)
+                .setTitle(disclaimerTitle)
+                .setMessage(disclaimerText)
+                .setCancelable(false)
+                .setPositiveButton(getString(R.string.disclaimer_accept), (dialog, which) -> {
+                    if (voiceManager != null) voiceManager.stop();
+                    prefs.edit().putBoolean(KEY_DISCLAIMER_ACCEPTED, true).apply();
+                    welcome_message();
+                })
+                .setNegativeButton(getString(R.string.disclaimer_exit), (dialog, which) -> {
+                    if (voiceManager != null) voiceManager.stop();
+                    finishAffinity();
+                })
+                .show();
+    }
+
+    /**
+     * Espera a que el TTS esté inicializado para reproducir el mensaje de bienvenida.
      */
     private void welcome_message() {
         handler.postDelayed(() -> {
@@ -49,15 +131,21 @@ public class WelcomeActivity extends BaseSwipeActivity {
 
     @Override
     protected void onDoubleTapDetected() {
-        // Detener voz si esta hablando
         if (voiceManager != null) {
             voiceManager.stop();
         }
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        // Resetear para que onResume vuelva a evaluar si los permisos cambiaron
+        flujoInicializado = false;
+    }
+
+    @Override
     protected void onDestroy() {
-        handler.removeCallbacksAndMessages(null); // Cancelar todos los callbacks pendientes
+        handler.removeCallbacksAndMessages(null);
         super.onDestroy();
     }
 }
