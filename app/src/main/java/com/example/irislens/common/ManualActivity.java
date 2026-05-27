@@ -30,6 +30,7 @@ public class ManualActivity extends BaseSwipeActivity {
         sections = new TextView[]{
                 findViewById(R.id.section_welcome),
                 findViewById(R.id.section_intro),
+                findViewById(R.id.section_accessibility),
                 findViewById(R.id.section_navigation),
                 findViewById(R.id.section_interaction),
                 findViewById(R.id.section_function),   // ← verificar que este ID exista en el XML

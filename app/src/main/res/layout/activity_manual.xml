@@ -23,6 +23,11 @@
             style="@style/manualSection"/>
 
         <TextView
+            android:id="@+id/section_accessibility"
+            android:text="Accesibilidad:\nEs compatible con TalkBack y adapta automáticamente sus audios para evitar superposición de voces."
+            style="@style/manualSection"/>
+
+        <TextView
             android:id="@+id/section_navigation"
             android:text="Inicio y navegación:\nPara cambiar de función deslice el dedo hacia la izquierda o derecha. Si TalkBack está activado, utilice dos dedos o el gesto configurado en accesibilidad."
             style="@style/manualSection"/>
