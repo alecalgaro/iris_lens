@@ -11,6 +11,7 @@ import com.example.irislens.medicine.view.MedicineRecognitionActivity;
 import com.example.irislens.money.view.MoneyRecognitionActivity;
 import com.example.irislens.display.view.DisplayRecognitionActivity;
 import com.example.irislens.common.ManualActivity;
+import com.example.irislens.common.AboutActivity;
 
 /**
  * Clase que gestiona las funcionalidades disponibles de la aplicacion.
@@ -24,6 +25,7 @@ public class Functionalities {
     public static final int MONEY = 2;
     public static final int DISPLAY = 3;
     public static final int MANUAL = 4;
+    public static final int ABOUT = 5;
 
     // Tag para log
     private static final String TAG = "Functionalities";
@@ -34,7 +36,8 @@ public class Functionalities {
             "Reconocimiento de medicamentos",
             "Reconocimiento de billetes",
             "Reconocimiento de displays",
-            "Manual de usuario"
+            "Manual de usuario",
+            "Acerca de Iris Lens"
     };
 
     // Lista de clases correspondientes a las funcionalidades
@@ -43,7 +46,8 @@ public class Functionalities {
             MedicineRecognitionActivity.class,
             MoneyRecognitionActivity.class,
             DisplayRecognitionActivity.class,
-            ManualActivity.class
+            ManualActivity.class,
+            AboutActivity.class
     );
 
     /**

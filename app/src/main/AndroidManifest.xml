@@ -36,6 +36,7 @@
         <activity android:name=".money.view.MoneyRecognitionActivity" />
         <activity android:name=".display.view.DisplayRecognitionActivity" />
         <activity android:name=".common.ManualActivity" />
+        <activity android:name=".common.AboutActivity" />
 
     </application>
 

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/aboutScroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/section_title"
+            android:text="Acerca de Iris Lens:"
+            style="@style/manualSection" />
+
+        <TextView
+            android:id="@+id/section_version"
+            android:text="Versión 1."
+            style="@style/manualSection" />
+
+        <TextView
+            android:id="@+id/section_description"
+            android:text="Iris Lens es un proyecto académico que utiliza inteligencia artificial y visión por computadora para contribuir a la accesibilidad y autonomía de las personas con discapacidad visual."
+            style="@style/manualSection" />
+
+        <TextView
+            android:id="@+id/section_contact_title"
+            android:text="Contacto:"
+            style="@style/manualSection" />
+
+        <TextView
+            android:id="@+id/section_contact"
+            android:text="Si tiene consultas, sugerencias, desea informar algún inconveniente o solicitar la incorporación de medicamentos o principios activos, puede comunicarse con nosotros a través del correo electrónico oficial del proyecto:"
+            style="@style/manualSection" />
+
+        <TextView
+            android:id="@+id/section_email"
+            android:text="irislens.app@gmail.com"
+            style="@style/manualSection" />
+
+        <TextView
+            android:id="@+id/section_thanks"
+            android:text="Gracias por utilizar Iris Lens."
+            style="@style/manualSection" />
+
+    </LinearLayout>
+
+</ScrollView>
