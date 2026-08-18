@@ -39,7 +39,7 @@ Iris Lens es una herramienta de apoyo para personas con discapacidad visual desa
   </tr>
 </table>
 
-La aplicación permite gestionar medicamentos y principios activos, con sincronización remota inicial y almacenamiento local. Los cambios locales se conservan y tienen prioridad en posteriores sincronizaciones.
+También incluye la gestión de medicamentos y principios activos, con sincronización remota inicial y almacenamiento local. Los cambios locales se conservan y tienen prioridad en posteriores sincronizaciones.
 
 Aunque el desarrollo activo de la aplicación ha finalizado, su código fuente se encuentra disponible públicamente para fines educativos y de investigación.
 
