@@ -4,7 +4,10 @@ import android.app.AlertDialog;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.ViewGroup;
 import android.widget.TextView;
+
+import androidx.core.content.ContextCompat;
 
 import com.example.irislens.R;
 
@@ -95,20 +98,46 @@ public class WelcomeActivity extends BaseSwipeActivity {
             }
         }, 600);
 
-        new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(disclaimerTitle)
                 .setMessage(disclaimerText)
                 .setCancelable(false)
-                .setPositiveButton(getString(R.string.disclaimer_accept), (dialog, which) -> {
+                .setPositiveButton(getString(R.string.disclaimer_accept), (d, which) -> {
                     if (voiceManager != null) voiceManager.stop();
                     prefs.edit().putBoolean(KEY_DISCLAIMER_ACCEPTED, true).apply();
                     welcome_message();
                 })
-                .setNegativeButton(getString(R.string.disclaimer_exit), (dialog, which) -> {
+                .setNegativeButton(getString(R.string.disclaimer_exit), (d, which) -> {
                     if (voiceManager != null) voiceManager.stop();
                     finishAffinity();
                 })
-                .show();
+                .create();
+
+        dialog.show();
+
+        // Texto blanco
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(ContextCompat.getColor(this, R.color.white));
+
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                .setTextColor(ContextCompat.getColor(this, R.color.white));
+
+        // Fondo azul
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setBackgroundColor(ContextCompat.getColor(this, R.color.iris_blue));
+
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                .setBackgroundColor(ContextCompat.getColor(this, R.color.iris_blue));
+
+        // Separación entre los botones
+        ViewGroup.MarginLayoutParams params =
+                (ViewGroup.MarginLayoutParams)
+                        dialog.getButton(AlertDialog.BUTTON_POSITIVE).getLayoutParams();
+
+        int margin = (int) (16 * getResources().getDisplayMetrics().density);
+        params.leftMargin = margin;
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setLayoutParams(params);
     }
 
     /**
