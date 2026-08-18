@@ -43,6 +43,11 @@
             style="@style/manualSection"/>
 
         <TextView
+            android:id="@+id/section_medicines"
+            android:text="Medicamentos y principios activos:\nPermite consultar y gestionar medicamentos y principios activos. Los datos se sincronizan inicialmente de forma remota y se almacenan localmente, conservando los cambios realizados en el dispositivo."
+            style="@style/manualSection"/>
+
+        <TextView
             android:id="@+id/section_support"
             android:text="Uso con soportes:\nLa aplicación puede utilizarse con el celular en la mano. Para reconocer medicamentos o billetes puede ser útil utilizar un soporte que mantenga el teléfono fijo."
             style="@style/manualSection"/>

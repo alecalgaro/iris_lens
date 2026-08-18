@@ -37,6 +37,8 @@
         <activity android:name=".display.view.DisplayRecognitionActivity" />
         <activity android:name=".common.ManualActivity" />
         <activity android:name=".common.AboutActivity" />
+        <activity android:name=".medicine.view.ManageMedicinesActivity" />
+        <activity android:name=".medicine.view.ManageActiveIngredientsActivity" />
 
     </application>
 

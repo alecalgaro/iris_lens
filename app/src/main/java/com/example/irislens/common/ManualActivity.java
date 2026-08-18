@@ -33,7 +33,8 @@ public class ManualActivity extends BaseSwipeActivity {
                 findViewById(R.id.section_accessibility),
                 findViewById(R.id.section_navigation),
                 findViewById(R.id.section_interaction),
-                findViewById(R.id.section_function),   // ← verificar que este ID exista en el XML
+                findViewById(R.id.section_function),
+                findViewById(R.id.section_medicines),
                 findViewById(R.id.section_support)
         };
 

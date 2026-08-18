@@ -1,8 +1,6 @@
 package com.example.irislens.medicine.presenter;
 
 import android.app.Activity;
-import android.content.ContentValues;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.media.MediaPlayer;
@@ -15,8 +13,8 @@ import android.widget.Toast;
 import com.example.irislens.R;
 import com.example.irislens.medicine.model.DatabaseManager;
 import com.example.irislens.common.ImageProcessor;
-import com.example.irislens.medicine.model.MedicineContract;
 import com.example.irislens.medicine.model.ReadImageText;
+import com.example.irislens.medicine.sync.MedicineSyncManager;
 import com.example.irislens.common.AppVoiceManager;
 import com.example.irislens.common.AccessibilityHelper;
 import com.example.irislens.medicine.model.Tools;
@@ -29,10 +27,6 @@ import java.util.concurrent.Executors;
 import java.util.Map;
 
 import androidx.core.util.Pair;
-
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.Source;
 
 public class MedicineRecognitionPresenter {
     private static final String TAG = "MedicinePresenter";
@@ -64,12 +58,34 @@ public class MedicineRecognitionPresenter {
         this.mainHandler = new Handler(Looper.getMainLooper());
     }
 
+    /**
+     * Asegura que la base local exista y sincroniza con Firestore usando el
+     * motor único de sync (respeta modificado_local, eliminado_local y
+     * es_semilla). Antes acá había SQL de sync propio con CONFLICT_REPLACE
+     * que borraba y reemplazaba filas sin respetar ediciones locales — no
+     * volver a hacer eso.
+     */
     public void initDatabase() {
-        SQLiteDatabase db = dbManager.getReadableDatabase();
-        if (db != null) {
-            Log.d("DB", "Base de datos creada y sincronizando con Firestore...");
-            syncWithFirestore(db);
-        }
+        dbManager.getReadableDatabase();
+        Log.d("DB", "Base de datos lista. Sincronizando con Firestore...");
+
+        MedicineSyncManager syncManager = new MedicineSyncManager(activity.getApplicationContext());
+
+        syncManager.sincronizarMedicamentos((nuevos, actualizados, vinculados) -> {
+            Toast.makeText(activity,
+                    "Medicamentos — nuevos: " + nuevos +
+                            ", actualizados: " + actualizados +
+                            ", vinculados: " + vinculados,
+                    Toast.LENGTH_SHORT).show();
+        });
+
+        syncManager.sincronizarPrincipiosActivos((nuevos, actualizados, vinculados) -> {
+            Toast.makeText(activity,
+                    "Principios activos — nuevos: " + nuevos +
+                            ", actualizados: " + actualizados +
+                            ", vinculados: " + vinculados,
+                    Toast.LENGTH_SHORT).show();
+        });
     }
 
     public Mat rotateImage(Mat image) {
@@ -289,7 +305,7 @@ public class MedicineRecognitionPresenter {
         if (accessibilityHelper.isTalkBackEnabled()) {
             // TalkBack es mas rapido que TTS (~150 palabras/minuto)
             int baseDuration = (int) ((wordCount / 2.5) * 1000);
-            return baseDuration + 1000; //
+            return baseDuration + 1000;
         } else {
             // TTS es mas lento (~120 palabras/minuto)
             int baseDuration = (int) ((wordCount / 2.0) * 1000);
@@ -310,191 +326,6 @@ public class MedicineRecognitionPresenter {
         isAnnouncing = false;
         mainHandler.removeCallbacksAndMessages(null);
         Log.d(TAG, "✅ Voz detenida y pantalla limpia");
-    }
-
-    /**
-     * Sincroniza la base de datos local con Firestore usando firestore_id como clave estable.
-     * Detecta cambios de nombre (ej: Famotidina → famotidina) como actualizaciones,
-     * no como registros nuevos. Elimina registros huérfanos (borrados en Firestore).
-     */
-    public void syncWithFirestore(SQLiteDatabase db) {
-        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
-
-        firestore.collection("medicamentos")
-                .get(Source.SERVER)
-                .addOnSuccessListener(query -> {
-                    int insertados = 0;
-                    int actualizados = 0;
-
-                    // Conjunto de firestore_ids recibidos, para detectar huérfanos al final
-                    java.util.Set<String> idsFirestore = new java.util.HashSet<>();
-
-                    for (DocumentSnapshot doc : query.getDocuments()) {
-                        if (!doc.contains("nombre") || !doc.contains("descripcion")) continue;
-                        String firestoreId = doc.getId();
-                        String nombre = doc.getString("nombre");
-                        String descripcion = doc.getString("descripcion");
-                        if (nombre == null || descripcion == null) continue;
-
-                        idsFirestore.add(firestoreId);
-
-                        // Buscar por firestore_id (clave estable), no por nombre
-                        Cursor cursor = db.query(
-                                MedicineContract.MedicineEntry.TABLE_NAME,
-                                new String[]{
-                                        MedicineContract.MedicineEntry.COLUMN_NAME,
-                                        MedicineContract.MedicineEntry.COLUMN_DESCRIPTION
-                                },
-                                MedicineContract.MedicineEntry.COLUMN_FIRESTORE_ID + " = ?",
-                                new String[]{firestoreId}, null, null, null
-                        );
-
-                        boolean existia = cursor.moveToFirst();
-                        boolean cambio = false;
-                        if (existia) {
-                            String nombreLocal = cursor.getString(
-                                    cursor.getColumnIndexOrThrow(MedicineContract.MedicineEntry.COLUMN_NAME));
-                            String descripcionLocal = cursor.getString(
-                                    cursor.getColumnIndexOrThrow(MedicineContract.MedicineEntry.COLUMN_DESCRIPTION));
-                            cambio = !nombre.equals(nombreLocal) || !descripcion.equals(descripcionLocal);
-                        }
-                        cursor.close();
-
-                        if (!existia || cambio) {
-                            ContentValues values = new ContentValues();
-                            values.put(MedicineContract.MedicineEntry.COLUMN_FIRESTORE_ID, firestoreId);
-                            values.put(MedicineContract.MedicineEntry.COLUMN_NAME, nombre);
-                            values.put(MedicineContract.MedicineEntry.COLUMN_DESCRIPTION, descripcion);
-                            db.insertWithOnConflict(
-                                    MedicineContract.MedicineEntry.TABLE_NAME,
-                                    null,
-                                    values,
-                                    SQLiteDatabase.CONFLICT_REPLACE
-                            );
-                            if (existia) actualizados++; else insertados++;
-                        }
-                    }
-
-                    // Eliminar huérfanos: registros locales con firestore_id que ya no existe en Firestore
-                    // (solo aplica a los que vinieron de Firestore, no a los del seed local que tienen firestore_id = null)
-                    int eliminados = 0;
-                    Cursor cursorLocal = db.query(
-                            MedicineContract.MedicineEntry.TABLE_NAME,
-                            new String[]{MedicineContract.MedicineEntry.COLUMN_FIRESTORE_ID},
-                            MedicineContract.MedicineEntry.COLUMN_FIRESTORE_ID + " IS NOT NULL",
-                            null, null, null, null
-                    );
-                    java.util.List<String> idsAEliminar = new java.util.ArrayList<>();
-                    while (cursorLocal.moveToNext()) {
-                        String idLocal = cursorLocal.getString(0);
-                        if (!idsFirestore.contains(idLocal)) idsAEliminar.add(idLocal);
-                    }
-                    cursorLocal.close();
-
-                    for (String idEliminar : idsAEliminar) {
-                        db.delete(MedicineContract.MedicineEntry.TABLE_NAME,
-                                MedicineContract.MedicineEntry.COLUMN_FIRESTORE_ID + " = ?",
-                                new String[]{idEliminar});
-                        eliminados++;
-                    }
-
-                    final int totalInsertados = insertados;
-                    final int totalActualizados = actualizados;
-                    final int totalEliminados = eliminados;
-                    mainHandler.post(() -> {
-                        Toast.makeText(activity,
-                                "Medicamentos — nuevos: " + totalInsertados +
-                                        ", actualizados: " + totalActualizados +
-                                        ", eliminados: " + totalEliminados,
-                                Toast.LENGTH_SHORT).show();
-                    });
-                })
-                .addOnFailureListener(e -> {
-                    Log.d(TAG, "Sin conexión, se omite sincronización de medicamentos: " + e.getMessage());
-                });
-
-        firestore.collection("principios_activos")
-                .get(Source.SERVER)
-                .addOnSuccessListener(query -> {
-                    int insertados = 0;
-                    int actualizados = 0;
-
-                    java.util.Set<String> idsFirestore = new java.util.HashSet<>();
-
-                    for (DocumentSnapshot doc : query.getDocuments()) {
-                        if (!doc.contains("nombre")) continue;
-                        String firestoreId = doc.getId();
-                        String nombre = doc.getString("nombre");
-                        if (nombre == null) continue;
-
-                        idsFirestore.add(firestoreId);
-
-                        Cursor cursor = db.query(
-                                MedicineContract.ActiveIngredient.TABLE_NAME,
-                                new String[]{MedicineContract.ActiveIngredient.COLUMN_NAME},
-                                MedicineContract.ActiveIngredient.COLUMN_FIRESTORE_ID + " = ?",
-                                new String[]{firestoreId}, null, null, null
-                        );
-
-                        boolean existia = cursor.moveToFirst();
-                        boolean cambio = false;
-                        if (existia) {
-                            String nombreLocal = cursor.getString(
-                                    cursor.getColumnIndexOrThrow(MedicineContract.ActiveIngredient.COLUMN_NAME));
-                            cambio = !nombre.equals(nombreLocal);
-                        }
-                        cursor.close();
-
-                        if (!existia || cambio) {
-                            ContentValues values = new ContentValues();
-                            values.put(MedicineContract.ActiveIngredient.COLUMN_FIRESTORE_ID, firestoreId);
-                            values.put(MedicineContract.ActiveIngredient.COLUMN_NAME, nombre);
-                            db.insertWithOnConflict(
-                                    MedicineContract.ActiveIngredient.TABLE_NAME,
-                                    null,
-                                    values,
-                                    SQLiteDatabase.CONFLICT_REPLACE
-                            );
-                            if (existia) actualizados++; else insertados++;
-                        }
-                    }
-
-                    // Eliminar huérfanos (solo los que tienen firestore_id)
-                    int eliminados = 0;
-                    Cursor cursorLocal = db.query(
-                            MedicineContract.ActiveIngredient.TABLE_NAME,
-                            new String[]{MedicineContract.ActiveIngredient.COLUMN_FIRESTORE_ID},
-                            MedicineContract.ActiveIngredient.COLUMN_FIRESTORE_ID + " IS NOT NULL",
-                            null, null, null, null
-                    );
-                    java.util.List<String> idsAEliminar = new java.util.ArrayList<>();
-                    while (cursorLocal.moveToNext()) {
-                        String idLocal = cursorLocal.getString(0);
-                        if (!idsFirestore.contains(idLocal)) idsAEliminar.add(idLocal);
-                    }
-                    cursorLocal.close();
-
-                    for (String idEliminar : idsAEliminar) {
-                        db.delete(MedicineContract.ActiveIngredient.TABLE_NAME,
-                                MedicineContract.ActiveIngredient.COLUMN_FIRESTORE_ID + " = ?",
-                                new String[]{idEliminar});
-                        eliminados++;
-                    }
-
-                    final int totalInsertados = insertados;
-                    final int totalActualizados = actualizados;
-                    final int totalEliminados = eliminados;
-                    mainHandler.post(() -> {
-                        Toast.makeText(activity,
-                                "Princ. activ. — nuevos: " + totalInsertados +
-                                        ", actualizados: " + totalActualizados +
-                                        ", eliminados: " + totalEliminados,
-                                Toast.LENGTH_SHORT).show();
-                    });
-                })
-                .addOnFailureListener(e -> {
-                    Log.d(TAG, "Sin conexión, se omite sincronización de principios activos: " + e.getMessage());
-                });
     }
 
     public void onDestroy() {

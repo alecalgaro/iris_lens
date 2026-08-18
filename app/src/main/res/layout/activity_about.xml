@@ -24,7 +24,7 @@
 
         <TextView
             android:id="@+id/section_description"
-            android:text="Iris Lens es un proyecto académico que utiliza inteligencia artificial y visión por computadora para contribuir a la accesibilidad y autonomía de las personas con discapacidad visual. Aunque el desarrollo activo de la aplicación ha finalizado, su código fuente se encuentra disponible públicamente para fines educativos y de investigación."
+            android:text="Iris Lens es un proyecto académico que tiene como propósito contribuir a la accesibilidad y autonomía de las personas con discapacidad visual. Aunque el desarrollo activo de la aplicación ha finalizado, su código fuente se encuentra disponible públicamente para fines educativos y de investigación."
             style="@style/manualSection" />
 
         <TextView

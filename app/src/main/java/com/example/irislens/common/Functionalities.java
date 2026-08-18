@@ -8,10 +8,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.example.irislens.medicine.view.MedicineRecognitionActivity;
+import com.example.irislens.medicine.view.ManageMedicinesActivity;
+import com.example.irislens.medicine.view.ManageActiveIngredientsActivity;
 import com.example.irislens.money.view.MoneyRecognitionActivity;
 import com.example.irislens.display.view.DisplayRecognitionActivity;
-import com.example.irislens.common.ManualActivity;
-import com.example.irislens.common.AboutActivity;
 
 /**
  * Clase que gestiona las funcionalidades disponibles de la aplicacion.
@@ -19,13 +19,18 @@ import com.example.irislens.common.AboutActivity;
  */
 public class Functionalities {
 
-    // Indice para la funcionalidad de reconocimiento de medicamentos, billetes y displays
+    // Índices de las funcionalidades. Primero van todos los reconocimientos
+    // (medicamentos, billetes, displays) y recién después las dos secciones
+    // de gestión, para que la persona aprenda un orden simple al navegar
+    // con swipe: "reconocer" y después "gestionar mis listas".
     public static final int WELCOME = 0;
     public static final int MEDICINE = 1;
     public static final int MONEY = 2;
     public static final int DISPLAY = 3;
-    public static final int MANUAL = 4;
-    public static final int ABOUT = 5;
+    public static final int MANAGE_MEDICINES = 4;
+    public static final int MANAGE_ACTIVE_INGREDIENTS = 5;
+    public static final int MANUAL = 6;
+    public static final int ABOUT = 7;
 
     // Tag para log
     private static final String TAG = "Functionalities";
@@ -36,6 +41,8 @@ public class Functionalities {
             "Reconocimiento de medicamentos",
             "Reconocimiento de billetes",
             "Reconocimiento de displays",
+            "Gestionar medicamentos",
+            "Gestionar principios activos",
             "Manual de usuario",
             "Acerca de Iris Lens"
     };
@@ -46,6 +53,8 @@ public class Functionalities {
             MedicineRecognitionActivity.class,
             MoneyRecognitionActivity.class,
             DisplayRecognitionActivity.class,
+            ManageMedicinesActivity.class,
+            ManageActiveIngredientsActivity.class,
             ManualActivity.class,
             AboutActivity.class
     );

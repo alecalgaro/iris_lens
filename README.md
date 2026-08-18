@@ -39,6 +39,8 @@ Iris Lens es una herramienta de apoyo para personas con discapacidad visual desa
   </tr>
 </table>
 
+La aplicación permite gestionar medicamentos y principios activos, con sincronización remota inicial y almacenamiento local. Los cambios locales se conservan y tienen prioridad en posteriores sincronizaciones.
+
 Aunque el desarrollo activo de la aplicación ha finalizado, su código fuente se encuentra disponible públicamente para fines educativos y de investigación.
 
 > **⚠️ Aviso** <br>
@@ -94,6 +96,12 @@ A continuación se muestra un ejemplo del esquema de la base de datos remota en 
     - `nombre`: “Paracetamol”
 
 Consultar la [documentación de Cloud Firestore](https://firebase.google.com/docs/firestore?hl=es) para más detalles sobre la gestión de colecciones y documentos.
+
+**Sincronización y almacenamiento local**
+
+Los medicamentos y principios activos se sincronizan inicialmente desde Cloud Firestore y se almacenan en una base de datos local del dispositivo. De esta forma, la aplicación puede consultar y gestionar esta información sin conexión a internet.
+
+Las modificaciones realizadas localmente se conservan y tienen prioridad durante las posteriores sincronizaciones, evitando que los cambios realizados en el dispositivo sean reemplazados por los datos remotos.
 
 <br>
 
